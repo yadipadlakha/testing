@@ -8,7 +8,9 @@ services:
       POSTGRES_PASSWORD: voyage
       POSTGRES_DB: voyage
     ports:
-      - "5432:5432"
+      # Bind to localhost only so the database is never exposed to the public
+      # internet (important on a VPS). The app connects via localhost.
+      - "127.0.0.1:5432:5432"
     volumes:
       - voyage-db-data:/var/lib/postgresql/data
     healthcheck:

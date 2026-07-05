@@ -3,6 +3,7 @@ import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
+import { apiUserWith } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -19,6 +20,9 @@ async function setImage(kind: string, id: string, imageUrl: string | null) {
 //   multipart: kind, id, file   → upload a photo and set it
 //   or JSON:   { kind, id, url } → set an image URL (or null to clear)
 export async function POST(req: Request) {
+  if (!(await apiUserWith("rates")))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   const ctype = req.headers.get("content-type") || "";
 
   try {

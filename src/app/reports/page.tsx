@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getReport } from "@/lib/reports";
+import { requirePermission } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +50,7 @@ export default async function ReportsPage({
 }: {
   searchParams: { month?: string; tab?: string };
 }) {
+  await requirePermission("reports");
   const tab = TABS.some((t) => t.key === searchParams.tab)
     ? (searchParams.tab as string)
     : "trips";

@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatMoney } from "@/lib/pricing";
+import { requirePermission } from "@/lib/auth";
+import { isAdmin } from "@/lib/permissions";
+import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -19,10 +22,18 @@ const statusStyles: Record<string, string> = {
 };
 
 export default async function QuotesPage() {
+  const user = await requirePermission("quotes");
+  const scope: Prisma.QuoteWhereInput = isAdmin(user.roles)
+    ? {}
+    : { OR: [{ createdById: user.id }, { query: { assigneeId: user.id } }] };
+
   let quotes: Awaited<ReturnType<typeof prisma.quote.findMany>> = [];
   let dbError = false;
   try {
-    quotes = await prisma.quote.findMany({ orderBy: { createdAt: "desc" } });
+    quotes = await prisma.quote.findMany({
+      where: scope,
+      orderBy: { createdAt: "desc" },
+    });
   } catch {
     dbError = true;
   }

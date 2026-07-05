@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import CatalogImage from "@/components/CatalogImage";
+import { requirePermission } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,7 @@ export default async function CatalogPage({
 }: {
   searchParams: { tab?: string };
 }) {
+  await requirePermission("rates");
   const tab = TABS.some((t) => t.key === searchParams.tab) ? (searchParams.tab as string) : "hotels";
 
   let hotels: Awaited<ReturnType<typeof prisma.hotel.findMany>> & { _count?: unknown }[] = [] as never;

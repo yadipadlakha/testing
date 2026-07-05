@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import type { QueryStatus } from "@prisma/client";
+import type { Prisma, QueryStatus } from "@prisma/client";
 import {
   QUERY_STATUSES,
   QUERY_STATUS_STYLE,
   type QueryStatusValue,
 } from "@/lib/types";
+import { requirePermission } from "@/lib/auth";
+import { isAdmin } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -23,22 +25,33 @@ export default async function QueriesPage({
 }: {
   searchParams: { status?: string };
 }) {
+  const user = await requirePermission("queries");
+  const admin = isAdmin(user.roles);
   const active = searchParams.status || "ALL";
 
+  // Employees only see queries assigned to them; admins see everything.
+  const scope: Prisma.QueryWhereInput = admin ? {} : { assigneeId: user.id };
+
   let counts: Record<string, number> = {};
-  let queries: Awaited<ReturnType<typeof prisma.query.findMany>> = [];
+  let queries: Prisma.QueryGetPayload<{
+    include: { assignee: { select: { name: true } } };
+  }>[] = [];
   let dbError = false;
 
   try {
     const grouped = await prisma.query.groupBy({
       by: ["status"],
+      where: scope,
       _count: { _all: true },
     });
     counts = Object.fromEntries(grouped.map((g) => [g.status, g._count._all]));
     queries = await prisma.query.findMany({
-      where:
-        active !== "ALL" ? { status: active as QueryStatus } : undefined,
+      where: {
+        ...scope,
+        ...(active !== "ALL" ? { status: active as QueryStatus } : {}),
+      },
       orderBy: { createdAt: "desc" },
+      include: { assignee: { select: { name: true } } },
     });
   } catch {
     dbError = true;
@@ -88,9 +101,16 @@ export default async function QueriesPage({
       {/* Query list */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-slate-900">
-            {navItems.find((n) => n.value === active)?.label ?? "All"}
-          </h1>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">
+              {navItems.find((n) => n.value === active)?.label ?? "All"}
+            </h1>
+            <p className="text-sm text-slate-500">
+              {admin
+                ? "All queries across the team."
+                : "Queries assigned to you."}
+            </p>
+          </div>
           <Link
             href="/queries/new"
             className="rounded-md bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
@@ -156,7 +176,9 @@ export default async function QueriesPage({
               </div>
               <div className="text-right text-xs text-slate-400">
                 {q.source && <div>{q.source}</div>}
-                <div>{q.salesTeam}</div>
+                <div className="font-medium text-slate-500">
+                  {q.assignee?.name ?? "Unassigned"}
+                </div>
               </div>
             </Link>
           ))}

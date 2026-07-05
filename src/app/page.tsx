@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { requirePermission } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,7 @@ const statusStyles: Record<string, string> = {
 };
 
 export default async function Home() {
+  await requirePermission("itineraries");
   let itineraries: Awaited<
     ReturnType<typeof prisma.itinerary.findMany>
   > = [];

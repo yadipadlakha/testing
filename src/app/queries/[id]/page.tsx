@@ -1,8 +1,11 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import QueryLifecycle from "@/components/QueryLifecycle";
+import AssignQuery from "@/components/AssignQuery";
 import { formatMoney } from "@/lib/pricing";
+import { requirePermission } from "@/lib/auth";
+import { isAdmin } from "@/lib/permissions";
 import type { Phone, QueryStatusValue } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -30,9 +33,13 @@ export default async function QueryDetailPage({
 }: {
   params: { id: string };
 }) {
+  const user = await requirePermission("queries");
+  const admin = isAdmin(user.roles);
+
   const query = await prisma.query.findUnique({
     where: { id: params.id },
     include: {
+      assignee: { select: { id: true, name: true } },
       quotes: {
         orderBy: { createdAt: "desc" },
         select: { id: true, title: true, status: true, total: true, currency: true },
@@ -40,6 +47,17 @@ export default async function QueryDetailPage({
     },
   });
   if (!query) notFound();
+  // Employees can only open queries assigned to them.
+  if (!admin && query.assigneeId !== user.id) redirect("/queries");
+
+  // Admins get the roster to (re)assign the query owner.
+  const employees = admin
+    ? await prisma.user.findMany({
+        where: { status: { not: "SUSPENDED" } },
+        orderBy: { name: "asc" },
+        select: { id: true, name: true },
+      })
+    : [];
 
   const phones = (query.phones as unknown as Phone[]) ?? [];
 
@@ -93,7 +111,10 @@ export default async function QueryDetailPage({
             <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
               <Field label="Source" value={query.source} />
               <Field label="Reference ID" value={query.referenceId} />
-              <Field label="Sales Team" value={query.salesTeam} />
+              <Field
+                label="Assigned to"
+                value={query.assignee?.name ?? "Unassigned"}
+              />
               <Field label="Start Date" value={fmtDate(query.startDate)} />
               <Field
                 label="Duration"
@@ -185,11 +206,18 @@ export default async function QueryDetailPage({
           </div>
         </div>
 
-        <div>
+        <div className="space-y-4">
           <QueryLifecycle
             id={query.id}
             status={query.status as QueryStatusValue}
           />
+          {admin && (
+            <AssignQuery
+              queryId={query.id}
+              current={query.assignee?.id ?? null}
+              employees={employees}
+            />
+          )}
         </div>
       </div>
     </div>

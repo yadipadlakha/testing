@@ -1,4 +1,5 @@
 import QuoteBuilder from "@/components/QuoteBuilder";
+import { requirePermission } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +9,7 @@ function addDays(iso: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-export default function NewQuotePage({
+export default async function NewQuotePage({
   searchParams,
 }: {
   searchParams: {
@@ -21,6 +22,7 @@ export default function NewQuotePage({
     title?: string;
   };
 }) {
+  await requirePermission("quotes");
   const nights = Math.max(1, Number(searchParams.nights) || 0);
   const checkIn = searchParams.checkIn;
   const initial = {

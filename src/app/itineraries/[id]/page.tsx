@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import ItineraryView from "@/components/ItineraryView";
+import { requirePermission } from "@/lib/auth";
 import type { ItineraryDay } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,7 @@ export default async function ItineraryDetailPage({
 }: {
   params: { id: string };
 }) {
+  await requirePermission("itineraries");
   const itinerary = await prisma.itinerary.findUnique({
     where: { id: params.id },
   });

@@ -1,6 +1,10 @@
 import ItineraryForm from "@/components/ItineraryForm";
+import { requirePermission } from "@/lib/auth";
 
-export default function NewItineraryPage() {
+export const dynamic = "force-dynamic";
+
+export default async function NewItineraryPage() {
+  await requirePermission("itineraries");
   return (
     <div className="space-y-6">
       <div>

@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import QuoteView from "@/components/QuoteView";
+import { requirePermission } from "@/lib/auth";
+import { isAdmin } from "@/lib/permissions";
 import type { QuoteItem } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -19,8 +21,21 @@ export default async function QuoteDetailPage({
 }: {
   params: { id: string };
 }) {
-  const quote = await prisma.quote.findUnique({ where: { id: params.id } });
+  const user = await requirePermission("quotes");
+  const quote = await prisma.quote.findUnique({
+    where: { id: params.id },
+    include: { query: { select: { assigneeId: true } } },
+  });
   if (!quote) notFound();
+  // Employees can only open quotes they created or that belong to a query
+  // assigned to them.
+  if (
+    !isAdmin(user.roles) &&
+    quote.createdById !== user.id &&
+    quote.query?.assigneeId !== user.id
+  ) {
+    redirect("/quotes");
+  }
 
   return (
     <div className="space-y-4">

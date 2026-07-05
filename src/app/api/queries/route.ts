@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { Prisma, QueryStatus } from "@prisma/client";
 import { QUERY_STATUSES, type QueryInput } from "@/lib/types";
+import { getCurrentUser } from "@/lib/auth";
+import { isAdmin } from "@/lib/permissions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,26 +11,36 @@ export const dynamic = "force-dynamic";
 const VALID = new Set<string>(QUERY_STATUSES.map((s) => s.value));
 
 // GET /api/queries?status=IN_PROGRESS — list, optionally filtered by status.
+// Employees only get their own assigned queries; admins get everything.
 export async function GET(req: Request) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
-  const where =
-    status && status !== "ALL" && VALID.has(status)
+  const where: Prisma.QueryWhereInput = {
+    ...(isAdmin(user.roles) ? {} : { assigneeId: user.id }),
+    ...(status && status !== "ALL" && VALID.has(status)
       ? { status: status as QueryStatus }
-      : undefined;
+      : {}),
+  };
 
   const queries = await prisma.query.findMany({
     where,
     orderBy: { createdAt: "desc" },
+    include: { assignee: { select: { name: true } } },
   });
   return NextResponse.json(queries);
 }
 
 // POST /api/queries — create a new query (enters at NEW_QUERY).
 export async function POST(req: Request) {
-  let body: QueryInput;
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  let body: QueryInput & { assigneeId?: string | null };
   try {
-    body = (await req.json()) as QueryInput;
+    body = (await req.json()) as QueryInput & { assigneeId?: string | null };
   } catch {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
@@ -40,11 +52,18 @@ export async function POST(req: Request) {
     );
   }
 
+  // Admins may assign to anyone (or leave unassigned); employees always own the
+  // queries they create.
+  const assigneeId = isAdmin(user.roles)
+    ? body.assigneeId?.trim() || null
+    : user.id;
+
   const created = await prisma.query.create({
     data: {
       source: body.source?.trim() || null,
       referenceId: body.referenceId?.trim() || null,
       salesTeam: body.salesTeam?.trim() || "You",
+      assigneeId,
       tags: Array.isArray(body.tags) ? body.tags : [],
       destinations: Array.isArray(body.destinations) ? body.destinations : [],
       startDate: body.startDate ? new Date(body.startDate) : null,

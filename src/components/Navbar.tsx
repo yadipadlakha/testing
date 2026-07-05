@@ -1,7 +1,21 @@
 import Link from "next/link";
 import Logo from "./Logo";
+import UserMenu from "./UserMenu";
+import { FEATURES, can, isAdmin, ROLE_LABELS } from "@/lib/permissions";
+import type { User } from "@prisma/client";
 
-export default function Navbar() {
+export default function Navbar({ user }: { user: User }) {
+  const admin = isAdmin(user.roles);
+
+  // Nav links: itineraries + queries + quotes + rates + reports the user can
+  // access. Admin tools live under the user menu, not the main bar.
+  const navFeatures = FEATURES.filter(
+    (f) => !f.adminOnly && can(user, f.key),
+  );
+
+  const roleLabel =
+    user.roles.map((r) => ROLE_LABELS[r]).join(" · ") || "Employee";
+
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
       {/* red → blue accent hairline */}
@@ -11,42 +25,32 @@ export default function Navbar() {
           <Logo />
         </Link>
         <nav className="flex items-center gap-1 text-sm">
-          <Link
-            href="/queries"
-            className="rounded-md px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-100 hover:text-brand-700"
-          >
-            Queries
-          </Link>
-          <Link
-            href="/quotes"
-            className="rounded-md px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-100 hover:text-brand-700"
-          >
-            Quotes
-          </Link>
-          <Link
-            href="/"
-            className="rounded-md px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-100 hover:text-brand-700"
-          >
-            Itineraries
-          </Link>
-          <Link
-            href="/reports"
-            className="rounded-md px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-100 hover:text-brand-700"
-          >
-            Reports
-          </Link>
-          <Link
-            href="/catalog"
-            className="rounded-md px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-100 hover:text-brand-700"
-          >
-            Rates
-          </Link>
-          <Link
-            href="/queries/new"
-            className="ml-1 rounded-md bg-accent-500 px-3.5 py-1.5 font-semibold text-white shadow-sm transition hover:bg-accent-600"
-          >
-            + New Query
-          </Link>
+          {navFeatures.map((f) => (
+            <Link
+              key={f.key}
+              href={f.href}
+              className="rounded-md px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-100 hover:text-brand-700"
+            >
+              {f.key === "rates" ? "Rates" : f.label}
+            </Link>
+          ))}
+          {admin && (
+            <Link
+              href="/admin/users"
+              className="rounded-md px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-100 hover:text-brand-700"
+            >
+              Admin
+            </Link>
+          )}
+          {can(user, "queries") && (
+            <Link
+              href="/queries/new"
+              className="ml-1 rounded-md bg-accent-500 px-3.5 py-1.5 font-semibold text-white shadow-sm transition hover:bg-accent-600"
+            >
+              + New Query
+            </Link>
+          )}
+          <UserMenu name={user.name} email={user.email} roleLabel={roleLabel} />
         </nav>
       </div>
     </header>

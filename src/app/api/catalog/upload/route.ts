@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { importHotels, importTransfers, importActivities } from "@/lib/importer";
+import { apiUserWith } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -7,6 +8,9 @@ export const maxDuration = 120;
 // POST /api/catalog/upload  (multipart: kind, file)
 // kind = "hotels" | "transfers" | "activities"
 export async function POST(req: Request) {
+  if (!(await apiUserWith("rates")))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   let form: FormData;
   try {
     form = await req.formData();

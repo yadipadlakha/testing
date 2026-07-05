@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import UploadRatesForm from "@/components/UploadRatesForm";
+import { requirePermission } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +49,8 @@ const FORMATS: Record<string, { intro: string; cols: string[] }> = {
   },
 };
 
-export default function UploadPage({ params }: { params: { kind: string } }) {
+export default async function UploadPage({ params }: { params: { kind: string } }) {
+  await requirePermission("rates");
   const { kind } = params;
   if (!TITLES[kind]) notFound();
   const fmt = FORMATS[kind];

@@ -83,6 +83,46 @@ src/components/*               # UI components
 | `PATCH`  | `/api/itineraries/:id`      | Update (title/status/notes/days) |
 | `DELETE` | `/api/itineraries/:id`      | Delete                           |
 
+## Contracting rates catalog
+
+The supplier rate sheets (Hong Kong & Macau **hotels**, **transfers**, and
+**activities**) are modeled as a normalized catalog in `prisma/schema.prisma`.
+The unifying pattern across all three domains is **seasonal pricing**: every
+product has a set of named seasons (date bands), and each rate is keyed by
+`(product, season, secondary-axis)`:
+
+| Domain     | Product    | Secondary axis            | Rate model                     |
+| ---------- | ---------- | ------------------------- | ------------------------------ |
+| Hotels     | `RoomType` | occupancy (`maxPax`)      | `RoomRate` per room per night  |
+| Hotels     | `HotelExtra` | extra bed / child        | `HotelExtraRate`               |
+| Transfers  | `Transfer` | `VehicleType` (8 sizes)   | `TransferRate` per vehicle     |
+| Activities | `Activity` | `PaxType` (adult / child) | `ActivityRate` per person      |
+
+Notes:
+
+- Rates are stored **net** as contracted. `netRate` is a `Decimal(10,2)`.
+- A missing/unavailable rate is `NULL` (the sheets use a sentinel of `1` for
+  "closed / not available"); the importer converts these to `NULL`.
+- Amounts are assumed to be **HKD** (`currency` field, override per product).
+- Hotel seasons are per-hotel date bands and can carry a day-of-week
+  restriction (e.g. `Sun,Mon,Tue,Wed,Thu`), captured in `HotelSeason.daysOfWeek`.
+
+### Importing the rate sheets
+
+`scripts/import-rates.mjs` reads the two workbooks and (re)builds the catalog.
+It wipes and rebuilds the catalog tables on each run and never touches
+`Itinerary`.
+
+```bash
+npm run db:import -- path/to/Master_Sheet_Hongkong_Hotels.xlsx path/to/HK_Land_Part_net.xlsx
+```
+
+A sample import of the provided sheets loads: **12 hotels · 50 room types ·
+3,670 room rates · 36 extras · 42 transfers · 8 vehicle types · 78 activities.**
+
+> The supplier workbooks contain proprietary net rates and are **not** committed
+> to the repository — pass their paths to the importer at runtime.
+
 ## Roadmap (next: the CRM layer)
 
 - `Client` and `Lead` models, with itineraries linked to a client

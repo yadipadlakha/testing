@@ -32,3 +32,225 @@ model Itinerary {
   @@index([status])
   @@index([createdAt])
 }
+
+// ---------------------------------------------------------------------------
+// CONTRACTING RATES CATALOG
+// Modeled from the supplier rate sheets (Hong Kong & Macau hotels, transfers,
+// activities). The unifying pattern across all three domains is SEASONAL
+// PRICING: every product carries a set of named seasons (date bands), and each
+// rate is keyed by (product, season, <secondary axis>) where the secondary
+// axis is room-occupancy for hotels, vehicle-type for transfers, and
+// adult/child for activities.
+//
+// Rates are stored NET (as contracted). A missing/unavailable rate is stored
+// as NULL (the sheets use a sentinel of 1 for "closed / not available").
+// Amounts are assumed to be in HKD unless overridden per product.
+// ---------------------------------------------------------------------------
+
+enum City {
+  HONG_KONG
+  MACAU
+}
+
+enum HotelExtraKind {
+  EXTRA_BED_ADULT
+  EXTRA_BED_CHILD
+  CHILD_NO_BED
+}
+
+enum PaxType {
+  ADULT
+  CHILD
+}
+
+// ---------------------------- Hotels ---------------------------------------
+
+model Hotel {
+  id         String   @id @default(cuid())
+  name       String
+  city       City
+  starRating Int? // parsed from "4-STAR" / "5-STAR"
+  currency   String   @default("HKD")
+  rawTitle   String? // original title cell, e.g. "PARK HOTEL | Hong Kong | 4-STAR"
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  seasons   HotelSeason[]
+  roomTypes RoomType[]
+  extras    HotelExtra[]
+
+  @@unique([name, city])
+}
+
+// A season is a date band scoped to a single hotel (hotels define their own
+// seasons independently — some daily, some multi-week, some day-of-week gated).
+model HotelSeason {
+  id         String   @id @default(cuid())
+  hotelId    String
+  code       String // "Season 1"
+  rawBand    String // original band text, e.g. "01 Jul 2026 - 31 Aug 2026 (Sun,Mon,Tue,Wed,Thu)"
+  startDate  DateTime
+  endDate    DateTime
+  daysOfWeek String? // optional day-of-week restriction captured from the band
+
+  hotel      Hotel            @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  roomRates  RoomRate[]
+  extraRates HotelExtraRate[]
+
+  @@unique([hotelId, code])
+  @@index([startDate, endDate])
+}
+
+model RoomType {
+  id       String @id @default(cuid())
+  hotelId  String
+  category String // "ROOM CATEGORY"
+  name     String // "ROOM TYPE"
+  mealPlan String // e.g. "BB"
+  maxPax   Int // parsed from occupancy code like "2P" -> 2
+
+  hotel Hotel      @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  rates RoomRate[]
+
+  // occupancy is part of a room's identity — the same room name recurs at
+  // different pax counts (e.g. a Deluxe Room sold as 2P and 4P).
+  @@unique([hotelId, name, mealPlan, maxPax])
+}
+
+model RoomRate {
+  id         String   @id @default(cuid())
+  roomTypeId String
+  seasonId   String
+  netRate    Decimal? @db.Decimal(10, 2) // per room per night; NULL = not available
+
+  roomType RoomType    @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+  season   HotelSeason @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  @@unique([roomTypeId, seasonId])
+  @@index([seasonId])
+}
+
+model HotelExtra {
+  id      String         @id @default(cuid())
+  hotelId String
+  kind    HotelExtraKind
+  label   String // original label, e.g. "Extra Bed - Child (3-11)"
+
+  hotel Hotel            @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  rates HotelExtraRate[]
+
+  @@unique([hotelId, kind])
+}
+
+model HotelExtraRate {
+  id       String   @id @default(cuid())
+  extraId  String
+  seasonId String
+  netRate  Decimal? @db.Decimal(10, 2)
+
+  extra  HotelExtra  @relation(fields: [extraId], references: [id], onDelete: Cascade)
+  season HotelSeason @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  @@unique([extraId, seasonId])
+  @@index([seasonId])
+}
+
+// --------------------------- Transfers -------------------------------------
+
+model VehicleType {
+  id     String @id @default(cuid())
+  name   String @unique // "Private Vehicle (6-7 pax)"
+  maxPax Int? // parsed from the name where available
+
+  rates TransferRate[]
+}
+
+// Transfer seasons are catalog-wide (the transport sheet uses a single band).
+model TransferSeason {
+  id        String   @id @default(cuid())
+  code      String   @unique // "Season 1"
+  rawBand   String
+  startDate DateTime
+  endDate   DateTime
+
+  rates TransferRate[]
+}
+
+model Transfer {
+  id           String   @id @default(cuid())
+  fromLocation String // "Hong Kong Airport"
+  toLocation   String // "Kowloon Hotel"
+  service      String // "Private Transfer - One Way" / route note
+  distance     String? // free text from the sheet
+  startTime    String?
+  durationMins Int?
+  daySchedule  String?  @db.Text // multi-line itinerary text when present
+  currency     String   @default("HKD")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  rates TransferRate[]
+
+  @@unique([fromLocation, toLocation, service])
+}
+
+model TransferRate {
+  id            String   @id @default(cuid())
+  transferId    String
+  seasonId      String
+  vehicleTypeId String
+  netRate       Decimal? @db.Decimal(10, 2) // per vehicle per transfer
+
+  transfer    Transfer       @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  season      TransferSeason @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  vehicleType VehicleType    @relation(fields: [vehicleTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([transferId, seasonId, vehicleTypeId])
+  @@index([seasonId])
+}
+
+// --------------------------- Activities ------------------------------------
+
+model ActivitySeason {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  rawBand   String
+  startDate DateTime
+  endDate   DateTime
+
+  rates ActivityRate[]
+}
+
+model Activity {
+  id           String   @id @default(cuid())
+  name         String
+  service      String // category, e.g. "Attractions Ticket", "SIC Transfer + Entry Ticket", "Veg"
+  description  String?  @db.Text
+  openTime     String?
+  closeTime    String?
+  durationMins Int?
+  slots        String?
+  childAgeFrom Int? // from the child column header, e.g. "Child (3-11)"
+  childAgeTo   Int?
+  currency     String   @default("HKD")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  rates ActivityRate[]
+
+  @@unique([name, service])
+}
+
+model ActivityRate {
+  id         String   @id @default(cuid())
+  activityId String
+  seasonId   String
+  paxType    PaxType
+  netRate    Decimal? @db.Decimal(10, 2) // per person
+
+  activity Activity       @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  season   ActivitySeason @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  @@unique([activityId, seasonId, paxType])
+  @@index([seasonId])
+}

@@ -32,3 +32,6 @@ next-env.d.ts
 
 # prisma
 /prisma/*.db
+
+# supplier rate workbooks (proprietary — do not commit)
+*.xlsx

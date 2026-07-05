@@ -75,7 +75,7 @@ function parseTitle(raw) {
   const parts = text(raw).split("|").map((s) => s.trim()).filter(Boolean);
   const name = parts[0] || "Unknown Hotel";
   const cityRaw = (parts[1] || "").toLowerCase();
-  const city = cityRaw.includes("macau") ? "MACAU" : "HONG_KONG";
+  const city = cityRaw.includes("macau") ? "Macau" : "Hong Kong";
   const starMatch = (parts[2] || "").match(/(\d+)/);
   const star = starMatch ? Number(starMatch[1]) : null;
   return { name, city, star };

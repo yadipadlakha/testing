@@ -53,3 +53,32 @@ export const INTEREST_OPTIONS = [
 
 export const STATUS_OPTIONS = ["draft", "quoted", "booked"] as const;
 export type Status = (typeof STATUS_OPTIONS)[number];
+
+// ------------------------------ Quotes -------------------------------------
+
+export const QUOTE_STATUS_OPTIONS = ["draft", "sent", "confirmed"] as const;
+export type QuoteStatus = (typeof QUOTE_STATUS_OPTIONS)[number];
+
+export type QuoteItemKind = "hotel" | "transfer" | "activity";
+
+// A snapshotted line on a quote. `amount` is the line total in the quote's
+// currency; `meta` holds a per-line breakdown for display/audit.
+export interface QuoteItem {
+  kind: QuoteItemKind;
+  refId: string; // roomTypeId / transferId / activityId
+  label: string; // main description
+  detail?: string; // e.g. "3 nights · Deluxe Room (2P)"
+  qty: number;
+  unit?: number; // unit rate where meaningful
+  amount: number; // line total
+  meta?: Record<string, unknown>;
+}
+
+export interface QuoteTripInput {
+  title: string;
+  city: string;
+  checkIn: string;
+  checkOut: string;
+  adults: number;
+  children: number;
+}

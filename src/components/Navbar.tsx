@@ -13,7 +13,7 @@ export default function Navbar() {
             AI Itinerary Builder
           </span>
         </Link>
-        <nav className="flex items-center gap-2 text-sm">
+        <nav className="flex items-center gap-1 text-sm">
           <Link
             href="/"
             className="rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-100"
@@ -21,10 +21,16 @@ export default function Navbar() {
             Itineraries
           </Link>
           <Link
-            href="/itineraries/new"
-            className="rounded-md bg-brand-500 px-3 py-1.5 font-medium text-white hover:bg-brand-600"
+            href="/quotes"
+            className="rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-100"
           >
-            New Itinerary
+            Quotes
+          </Link>
+          <Link
+            href="/quotes/new"
+            className="ml-1 rounded-md bg-brand-500 px-3 py-1.5 font-medium text-white hover:bg-brand-600"
+          >
+            New Quote
           </Link>
         </nav>
       </div>

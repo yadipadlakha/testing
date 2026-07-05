@@ -47,11 +47,6 @@ model Itinerary {
 // Amounts are assumed to be in HKD unless overridden per product.
 // ---------------------------------------------------------------------------
 
-enum City {
-  HONG_KONG
-  MACAU
-}
-
 enum HotelExtraKind {
   EXTRA_BED_ADULT
   EXTRA_BED_CHILD
@@ -68,7 +63,9 @@ enum PaxType {
 model Hotel {
   id         String   @id @default(cuid())
   name       String
-  city       City
+  // City/destination label (e.g. "Hong Kong", "Macau"). Kept as a free string
+  // rather than an enum so new destinations can be added without a migration.
+  city       String
   starRating Int? // parsed from "4-STAR" / "5-STAR"
   currency   String   @default("HKD")
   rawTitle   String? // original title cell, e.g. "PARK HOTEL | Hong Kong | 4-STAR"
@@ -253,4 +250,31 @@ model ActivityRate {
 
   @@unique([activityId, seasonId, paxType])
   @@index([seasonId])
+}
+
+// ----------------------------- Quotes --------------------------------------
+// A quote is a point-in-time, itemized price built from the contracting-rates
+// catalog. Line items are snapshotted as JSON (rates may change later; a quote
+// must preserve the numbers it was built with), mirroring how Itinerary.days
+// is stored. See src/lib/types.ts for the QuoteItem shape.
+
+model Quote {
+  id        String   @id @default(cuid())
+  title     String
+  city      String // destination label
+  checkIn   DateTime
+  checkOut  DateTime
+  adults    Int      @default(2)
+  children  Int      @default(0)
+  currency  String   @default("HKD")
+  status    String   @default("draft") // draft | sent | confirmed
+  items     Json // QuoteItem[] snapshot
+  subtotal  Decimal  @db.Decimal(12, 2) @default(0)
+  total     Decimal  @db.Decimal(12, 2) @default(0)
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
 }

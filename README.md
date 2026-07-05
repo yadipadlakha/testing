@@ -123,6 +123,40 @@ A sample import of the provided sheets loads: **12 hotels · 50 room types ·
 > The supplier workbooks contain proprietary net rates and are **not** committed
 > to the repository — pass their paths to the importer at runtime.
 
+## Auto-priced quoting
+
+The **Quote builder** (`/quotes/new`) assembles an itemized, net-rate quote
+directly from the contracting catalog:
+
+- **Accommodation** — pick a destination → hotel → room; the pricing engine
+  resolves **each night** to its applicable season (honoring date bands and
+  day-of-week restrictions) and sums the contracted rates. Nights with no
+  contracted rate are flagged and excluded.
+- **Transfers** — search the catalog and pick a vehicle size; the rate is
+  pulled from the contract.
+- **Activities** — search and add attractions/tickets with adult/child pax; the
+  amount is `adultRate × adults + childRate × children`.
+- A live summary rail totals everything in the destination's currency (HKD).
+  Saving snapshots the line items and the authoritative server-computed total.
+
+The destination selector is driven by the distinct cities present in the
+catalog, so **new destinations appear automatically** once their inventory is
+imported — no code change needed.
+
+The pricing logic lives in `src/lib/pricing.ts` (pure, testable functions:
+`nightsBetween`, `seasonMatches`, `priceStay`). Quote catalog + pricing APIs:
+
+| Method | Route                              | Purpose                                   |
+| ------ | ---------------------------------- | ----------------------------------------- |
+| `GET`  | `/api/catalog/cities`              | Distinct destinations (with hotel counts) |
+| `GET`  | `/api/catalog/hotels?city=`        | Hotels for a destination                  |
+| `GET`  | `/api/catalog/hotels/:id/rooms`    | Room types for a hotel                    |
+| `POST` | `/api/pricing/hotel`               | Per-night stay pricing (season resolved)  |
+| `GET`  | `/api/catalog/transfers?q=`        | Transfers with per-vehicle rates          |
+| `GET`  | `/api/catalog/activities?q=`       | Activities with adult/child rates         |
+| `GET`/`POST` | `/api/quotes`                | List / save quotes                        |
+| `GET`/`PATCH`/`DELETE` | `/api/quotes/:id`  | Fetch / update status / delete            |
+
 ## Roadmap (next: the CRM layer)
 
 - `Client` and `Lead` models, with itineraries linked to a client

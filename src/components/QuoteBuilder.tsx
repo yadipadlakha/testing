@@ -31,16 +31,27 @@ function Section({ title, subtitle, children }: { title: string; subtitle?: stri
   );
 }
 
-export default function QuoteBuilder() {
+export interface QuoteInitial {
+  queryId?: string;
+  title?: string;
+  city?: string;
+  checkIn?: string;
+  checkOut?: string;
+  adults?: number;
+  children?: number;
+}
+
+export default function QuoteBuilder({ initial }: { initial?: QuoteInitial }) {
   const router = useRouter();
   const uid = useRef(1);
 
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState(initial?.title ?? "");
   const [city, setCity] = useState("");
-  const [checkIn, setCheckIn] = useState("");
-  const [checkOut, setCheckOut] = useState("");
-  const [adults, setAdults] = useState(2);
-  const [children, setChildren] = useState(0);
+  const [checkIn, setCheckIn] = useState(initial?.checkIn ?? "");
+  const [checkOut, setCheckOut] = useState(initial?.checkOut ?? "");
+  const [adults, setAdults] = useState(initial?.adults ?? 2);
+  const [children, setChildren] = useState(initial?.children ?? 0);
+  const queryId = initial?.queryId;
 
   const [cities, setCities] = useState<CityOpt[]>([]);
   const [hotels, setHotels] = useState<HotelOpt[]>([]);
@@ -62,11 +73,24 @@ export default function QuoteBuilder() {
 
   const currency = pricing?.currency || "HKD";
 
-  // Load cities + catalog once.
+  // Load cities + catalog once. If a destination was prefilled from a query,
+  // snap it to the matching catalog city.
   useEffect(() => {
-    fetch("/api/catalog/cities").then((r) => r.json()).then(setCities).catch(() => {});
+    fetch("/api/catalog/cities")
+      .then((r) => r.json())
+      .then((cs: CityOpt[]) => {
+        setCities(cs);
+        if (initial?.city) {
+          const match = cs.find(
+            (c) => c.city.toLowerCase() === initial.city!.toLowerCase(),
+          );
+          if (match) setCity(match.city);
+        }
+      })
+      .catch(() => {});
     fetch("/api/catalog/transfers").then((r) => r.json()).then(setTransfersCat).catch(() => {});
     fetch("/api/catalog/activities").then((r) => r.json()).then(setActivitiesCat).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Load hotels when city changes.
@@ -190,7 +214,7 @@ export default function QuoteBuilder() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          trip: { title, city, checkIn, checkOut, adults, children },
+          trip: { title, city, checkIn, checkOut, adults, children, queryId },
           items,
         }),
       });

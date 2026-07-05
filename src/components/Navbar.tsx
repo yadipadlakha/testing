@@ -15,10 +15,10 @@ export default function Navbar() {
         </Link>
         <nav className="flex items-center gap-1 text-sm">
           <Link
-            href="/"
+            href="/queries"
             className="rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-100"
           >
-            Itineraries
+            Queries
           </Link>
           <Link
             href="/quotes"
@@ -27,10 +27,16 @@ export default function Navbar() {
             Quotes
           </Link>
           <Link
-            href="/quotes/new"
+            href="/"
+            className="rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-100"
+          >
+            Itineraries
+          </Link>
+          <Link
+            href="/queries/new"
             className="ml-1 rounded-md bg-brand-500 px-3 py-1.5 font-medium text-white hover:bg-brand-600"
           >
-            New Quote
+            + New Query
           </Link>
         </nav>
       </div>

@@ -47,6 +47,19 @@ model Itinerary {
 // Amounts are assumed to be in HKD unless overridden per product.
 // ---------------------------------------------------------------------------
 
+// Lifecycle states for a query (see the Trips sidebar). "All" is a filter,
+// not a stored status.
+enum QueryStatus {
+  NEW_QUERY
+  IN_PROGRESS
+  ON_HOLD
+  CONVERTED
+  ON_TRIP
+  PAST_TRIP
+  CANCELED
+  DROPPED
+}
+
 enum HotelExtraKind {
   EXTRA_BED_ADULT
   EXTRA_BED_CHILD
@@ -252,6 +265,45 @@ model ActivityRate {
   @@index([seasonId])
 }
 
+// ------------------------------ Query --------------------------------------
+// A travel enquiry (the CRM entry point). Mirrors the "New Query" form:
+// source, destination & duration, guest details, and free-text notes. A query
+// moves through the lifecycle in QueryStatus and can spawn one or more quotes.
+
+model Query {
+  id           String      @id @default(cuid())
+  // Query Source
+  source       String? // e.g. "B2B", "Website", "Referral"
+  referenceId  String? // agency's own reference id
+  salesTeam    String      @default("You") // assigned owner
+  tags         String[]
+  // Destination & Duration
+  destinations String[]
+  startDate    DateTime?
+  nights       Int         @default(1)
+  adults       Int         @default(1)
+  childAges    Int[] // one entry per child (length = number of children)
+  totalFoc     Int         @default(0) // free-of-cost pax
+  // Guest Details
+  salutation   String?
+  guestName    String
+  phones       Json // [{ code: "91-IN", number: "9779212233" }]
+  email        String?
+  location     String?
+  // Notes
+  comments     String?
+  // Lifecycle
+  status       QueryStatus @default(NEW_QUERY)
+  currency     String      @default("HKD")
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  quotes Quote[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
 // ----------------------------- Quotes --------------------------------------
 // A quote is a point-in-time, itemized price built from the contracting-rates
 // catalog. Line items are snapshotted as JSON (rates may change later; a quote
@@ -272,9 +324,13 @@ model Quote {
   subtotal  Decimal  @db.Decimal(12, 2) @default(0)
   total     Decimal  @db.Decimal(12, 2) @default(0)
   notes     String?
+  queryId   String? // optional link back to the originating query
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  query Query? @relation(fields: [queryId], references: [id], onDelete: SetNull)
+
   @@index([status])
   @@index([createdAt])
+  @@index([queryId])
 }

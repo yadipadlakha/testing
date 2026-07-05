@@ -81,4 +81,87 @@ export interface QuoteTripInput {
   checkOut: string;
   adults: number;
   children: number;
+  queryId?: string;
+}
+
+// ------------------------------ Query --------------------------------------
+
+export const QUERY_STATUSES = [
+  { value: "NEW_QUERY", label: "New Query" },
+  { value: "IN_PROGRESS", label: "In Progress" },
+  { value: "ON_HOLD", label: "On Hold" },
+  { value: "CONVERTED", label: "Converted" },
+  { value: "ON_TRIP", label: "On Trip" },
+  { value: "PAST_TRIP", label: "Past Trips" },
+  { value: "CANCELED", label: "Canceled" },
+  { value: "DROPPED", label: "Dropped" },
+] as const;
+
+export type QueryStatusValue = (typeof QUERY_STATUSES)[number]["value"];
+
+export const QUERY_STATUS_LABEL: Record<QueryStatusValue, string> =
+  Object.fromEntries(QUERY_STATUSES.map((s) => [s.value, s.label])) as Record<
+    QueryStatusValue,
+    string
+  >;
+
+// Allowed lifecycle transitions. Canceled/Dropped can be reopened to New Query.
+export const QUERY_TRANSITIONS: Record<QueryStatusValue, QueryStatusValue[]> = {
+  NEW_QUERY: ["IN_PROGRESS", "ON_HOLD", "DROPPED", "CANCELED"],
+  IN_PROGRESS: ["ON_HOLD", "CONVERTED", "DROPPED", "CANCELED"],
+  ON_HOLD: ["IN_PROGRESS", "CONVERTED", "DROPPED", "CANCELED"],
+  CONVERTED: ["ON_TRIP", "ON_HOLD", "CANCELED"],
+  ON_TRIP: ["PAST_TRIP", "ON_HOLD"],
+  PAST_TRIP: [],
+  CANCELED: ["NEW_QUERY"],
+  DROPPED: ["NEW_QUERY"],
+};
+
+// Tailwind chip styles per status (used in lists and badges).
+export const QUERY_STATUS_STYLE: Record<QueryStatusValue, string> = {
+  NEW_QUERY: "bg-blue-100 text-blue-700",
+  IN_PROGRESS: "bg-indigo-100 text-indigo-700",
+  ON_HOLD: "bg-amber-100 text-amber-700",
+  CONVERTED: "bg-emerald-100 text-emerald-700",
+  ON_TRIP: "bg-teal-100 text-teal-700",
+  PAST_TRIP: "bg-slate-200 text-slate-700",
+  CANCELED: "bg-rose-100 text-rose-700",
+  DROPPED: "bg-slate-100 text-slate-500",
+};
+
+export interface Phone {
+  code: string; // dialing label, e.g. "91-IN"
+  number: string;
+}
+
+export const PHONE_CODES = [
+  "91-IN",
+  "1-US",
+  "44-GB",
+  "61-AU",
+  "65-SG",
+  "852-HK",
+  "853-MO",
+  "971-AE",
+  "66-TH",
+  "60-MY",
+] as const;
+
+export interface QueryInput {
+  source?: string;
+  referenceId?: string;
+  salesTeam?: string;
+  tags: string[];
+  destinations: string[];
+  startDate?: string;
+  nights: number;
+  adults: number;
+  childAges: number[];
+  totalFoc: number;
+  salutation?: string;
+  guestName: string;
+  phones: Phone[];
+  email?: string;
+  location?: string;
+  comments?: string;
 }

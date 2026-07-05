@@ -58,8 +58,21 @@ export async function POST(req: Request) {
       subtotal,
       total: subtotal,
       notes: body.notes || null,
+      queryId: trip.queryId || null,
     },
   });
+
+  // Pricing a quote for a query is an explicit "convert" — advance the query
+  // if it's still in an early state.
+  if (trip.queryId) {
+    await prisma.query.updateMany({
+      where: {
+        id: trip.queryId,
+        status: { in: ["NEW_QUERY", "IN_PROGRESS", "ON_HOLD"] },
+      },
+      data: { status: "CONVERTED" },
+    });
+  }
 
   return NextResponse.json(created, { status: 201 });
 }

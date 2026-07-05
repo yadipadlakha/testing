@@ -123,6 +123,36 @@ A sample import of the provided sheets loads: **12 hotels · 50 room types ·
 > The supplier workbooks contain proprietary net rates and are **not** committed
 > to the repository — pass their paths to the importer at runtime.
 
+## Queries & lifecycle (CRM)
+
+A **Query** is the CRM entry point — a travel enquiry captured on the
+**New Query** form (`/queries/new`): source, reference id, sales team, tags;
+destination(s), start date, nights, adults, children with ages, total FOC;
+guest salutation/name, multiple phone numbers, optional email/location; and
+free-text comments.
+
+Queries move through a lifecycle (the **Trips** sidebar on `/queries`):
+
+```
+New Query → In Progress → On Hold → Converted → On Trip → Past Trips
+                     ↘ Dropped   ↘ Canceled
+```
+
+Transitions are enforced server-side (`QUERY_TRANSITIONS` in
+`src/lib/types.ts`); the detail page only offers valid next states, and the
+sidebar filters/counts queries by state. Creating a quote for a query is an
+explicit **convert**: the quote links back (`Quote.queryId`) and the query
+advances to **Converted** automatically. "Start a quote →" on a query prefills
+the quote builder (destination, dates, pax) from the enquiry.
+
+| Method | Route                | Purpose                                       |
+| ------ | -------------------- | --------------------------------------------- |
+| `GET`  | `/api/queries?status=` | List, filtered by lifecycle state           |
+| `POST` | `/api/queries`       | Create a query (enters at New Query)          |
+| `GET`  | `/api/queries/:id`   | Query + linked quotes                         |
+| `PATCH`| `/api/queries/:id`   | Advance lifecycle (validated) / edit fields   |
+| `DELETE`| `/api/queries/:id`  | Delete                                        |
+
 ## Auto-priced quoting
 
 The **Quote builder** (`/quotes/new`) assembles an itemized, net-rate quote

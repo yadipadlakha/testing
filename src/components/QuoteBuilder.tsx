@@ -10,10 +10,10 @@ interface CityOpt { city: string; hotels: number; }
 interface HotelOpt { id: string; name: string; city: string; starRating: number | null; currency: string; roomTypes: number; }
 interface RoomOpt { id: string; category: string; name: string; mealPlan: string; maxPax: number; }
 interface NightLine { date: string; seasonCode: string | null; rate: number | null; }
-interface HotelPricing { roomTypeId: string; hotel: string; city: string; currency: string; room: string; nights: number; lines: NightLine[]; subtotal: number; unavailableNights: number; }
+interface HotelPricing { roomTypeId: string; hotel: string; city: string; currency: string; image: string | null; room: string; nights: number; lines: NightLine[]; subtotal: number; unavailableNights: number; }
 interface VehicleOpt { vehicleTypeId: string; name: string; maxPax: number | null; netRate: number; }
-interface TransferOpt { id: string; fromLocation: string; toLocation: string; service: string; durationMins: number | null; daySchedule: string | null; vehicles: VehicleOpt[]; }
-interface ActivityOpt { id: string; name: string; service: string; description: string | null; childAgeFrom: number | null; childAgeTo: number | null; adultRate: number | null; childRate: number | null; }
+interface TransferOpt { id: string; fromLocation: string; toLocation: string; service: string; durationMins: number | null; daySchedule: string | null; image: string | null; vehicles: VehicleOpt[]; }
+interface ActivityOpt { id: string; name: string; service: string; description: string | null; image: string | null; childAgeFrom: number | null; childAgeTo: number | null; adultRate: number | null; childRate: number | null; }
 
 interface AddedTransfer { uid: number; transfer: TransferOpt; vehicleTypeId: string; qty: number; }
 interface AddedActivity { uid: number; activity: ActivityOpt; adults: number; children: number; }
@@ -156,6 +156,7 @@ export default function QuoteBuilder({ initial }: { initial?: QuoteInitial }) {
         detail: `${pricing.nights - pricing.unavailableNights} of ${pricing.nights} night(s) priced`,
         qty: pricing.nights,
         amount: pricing.subtotal,
+        image: pricing.image ?? undefined,
         meta: { lines: pricing.lines },
       });
     }
@@ -170,6 +171,7 @@ export default function QuoteBuilder({ initial }: { initial?: QuoteInitial }) {
         qty: at.qty,
         unit: v.netRate,
         amount: v.netRate * at.qty,
+        image: at.transfer.image ?? undefined,
       });
     }
     for (const aa of addedActivities) {
@@ -183,6 +185,7 @@ export default function QuoteBuilder({ initial }: { initial?: QuoteInitial }) {
         detail: `${aa.adults} adult(s)${aa.children ? `, ${aa.children} child(ren)` : ""}`,
         qty: aa.adults + aa.children,
         amount,
+        image: aa.activity.image ?? undefined,
         meta: { adults: aa.adults, children: aa.children, adultRate: ar, childRate: cr },
       });
     }

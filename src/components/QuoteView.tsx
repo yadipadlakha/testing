@@ -70,6 +70,14 @@ export default function QuoteView(props: QuoteViewProps) {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <a
+              href={`/api/quotes/${props.id}/pdf`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-md bg-accent-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-accent-600"
+            >
+              ⤓ Download PDF
+            </a>
             <label className="text-sm text-slate-500">Status</label>
             <select
               value={status}

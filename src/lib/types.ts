@@ -71,6 +71,7 @@ export interface QuoteItem {
   qty: number;
   unit?: number; // unit rate where meaningful
   amount: number; // line total
+  image?: string; // per-item photo (catalog imageUrl) for the PDF
   meta?: Record<string, unknown>;
 }
 

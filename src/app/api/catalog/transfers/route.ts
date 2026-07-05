@@ -31,6 +31,7 @@ export async function GET(req: Request) {
       service: t.service,
       durationMins: t.durationMins,
       daySchedule: t.daySchedule,
+      image: t.imageUrl,
       // only vehicle options that actually have a rate
       vehicles: t.rates
         .filter((r) => r.netRate != null)

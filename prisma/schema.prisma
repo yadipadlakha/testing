@@ -80,6 +80,7 @@ model Hotel {
   // rather than an enum so new destinations can be added without a migration.
   city       String
   starRating Int? // parsed from "4-STAR" / "5-STAR"
+  imageUrl   String? // photo shown on the client-facing PDF
   currency   String   @default("HKD")
   rawTitle   String? // original title cell, e.g. "PARK HOTEL | Hong Kong | 4-STAR"
   createdAt  DateTime @default(now())
@@ -195,6 +196,7 @@ model Transfer {
   startTime    String?
   durationMins Int?
   daySchedule  String?  @db.Text // multi-line itinerary text when present
+  imageUrl     String? // photo shown on the client-facing PDF
   currency     String   @default("HKD")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -242,6 +244,7 @@ model Activity {
   slots        String?
   childAgeFrom Int? // from the child column header, e.g. "Child (3-11)"
   childAgeTo   Int?
+  imageUrl     String? // photo shown on the client-facing PDF
   currency     String   @default("HKD")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

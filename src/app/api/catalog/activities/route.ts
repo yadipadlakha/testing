@@ -31,6 +31,7 @@ export async function GET(req: Request) {
         name: a.name,
         service: a.service,
         description: a.description,
+        image: a.imageUrl,
         childAgeFrom: a.childAgeFrom,
         childAgeTo: a.childAgeTo,
         adultRate: adult?.netRate != null ? Number(adult.netRate) : null,

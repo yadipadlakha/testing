@@ -37,7 +37,7 @@ export async function POST(req: Request) {
   const room = await prisma.roomType.findUnique({
     where: { id: roomTypeId },
     include: {
-      hotel: { select: { name: true, city: true, currency: true } },
+      hotel: { select: { name: true, city: true, currency: true, imageUrl: true } },
       rates: { include: { season: true } },
     },
   });
@@ -56,6 +56,7 @@ export async function POST(req: Request) {
     hotel: room.hotel.name,
     city: room.hotel.city,
     currency: room.hotel.currency,
+    image: room.hotel.imageUrl,
     room: `${room.name} (${room.maxPax}P, ${room.mealPlan})`,
     ...pricing,
   });

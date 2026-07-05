@@ -36,7 +36,12 @@ export async function startSession(user: User): Promise<void> {
   cookies().set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    // Secure in production, but allow opting out for local HTTP deployments
+    // accessed over a non-localhost address (see AUTH_INSECURE_COOKIE in
+    // .env.example). localhost is already treated as a secure context.
+    secure:
+      process.env.NODE_ENV === "production" &&
+      process.env.AUTH_INSECURE_COOKIE !== "true",
     path: "/",
     maxAge: SESSION_MAX_AGE,
   });

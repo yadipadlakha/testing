@@ -12,6 +12,8 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "db:import": "node scripts/import-rates.mjs",
+    "db:seed": "node scripts/seed-admin.mjs",
+    "db:seed:demo": "node scripts/seed-demo-users.mjs",
     "postinstall": "prisma generate"
   },
   "dependencies": {

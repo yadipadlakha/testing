@@ -1,4 +1,4 @@
-# Voyage — AI Itinerary Builder + CRM
+# Andeverywhere — Travel CRM & AI Itinerary Builder
 
 An internal web app for travel agencies: generate detailed, day-by-day trip
 itineraries with AI, then manage them through a lightweight client pipeline

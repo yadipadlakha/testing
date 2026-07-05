@@ -9,17 +9,31 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Andeverywhere navy blue (primary) — drives buttons, links, headings.
         brand: {
-          50: "#eef7f6",
-          100: "#d3ebe8",
-          200: "#a7d7d1",
-          300: "#72bcb4",
-          400: "#469b93",
-          500: "#2c7d76",
-          600: "#22645f",
-          700: "#1e504d",
-          800: "#1b413f",
-          900: "#193735",
+          50: "#eef1fa",
+          100: "#d7ddf3",
+          200: "#b0bde6",
+          300: "#8194d5",
+          400: "#5670c1",
+          500: "#3a54ab",
+          600: "#2b3f89",
+          700: "#20306b",
+          800: "#1b2857",
+          900: "#172147",
+        },
+        // Andeverywhere red (accent) — logo mark, highlights, CTAs.
+        accent: {
+          50: "#fdecec",
+          100: "#fbd2d2",
+          200: "#f6a6a6",
+          300: "#f07575",
+          400: "#e94a4a",
+          500: "#e11d2a",
+          600: "#c2141f",
+          700: "#9d121b",
+          800: "#7f141a",
+          900: "#6b151a",
         },
       },
     },

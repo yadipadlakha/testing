@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "Voyage — AI Itinerary Builder",
+  title: "Andeverywhere — Travel CRM",
   description:
-    "Build AI-powered travel itineraries and manage clients, all in one place.",
+    "Andeverywhere — B2B travel enquiries, quotes and itineraries with contracted rates, all in one place.",
 };
 
 export default function RootLayout({
@@ -15,9 +16,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
+      <body className="flex min-h-screen flex-col">
         <Navbar />
-        <main className="mx-auto w-full max-w-5xl px-4 py-8">{children}</main>
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
+          {children}
+        </main>
+        <Footer />
       </body>
     </html>
   );

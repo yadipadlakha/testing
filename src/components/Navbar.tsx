@@ -30,6 +30,12 @@ export default function Navbar() {
             Itineraries
           </Link>
           <Link
+            href="/reports"
+            className="rounded-md px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-100 hover:text-brand-700"
+          >
+            Reports
+          </Link>
+          <Link
             href="/queries/new"
             className="ml-1 rounded-md bg-accent-500 px-3.5 py-1.5 font-semibold text-white shadow-sm transition hover:bg-accent-600"
           >

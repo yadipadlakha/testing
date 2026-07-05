@@ -50,9 +50,7 @@ export default function Footer() {
       <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-12 md:grid-cols-2 lg:grid-cols-4">
         {/* Brand + social */}
         <div className="space-y-4">
-          <div className="inline-flex rounded-lg bg-white px-3 py-2">
-            <Logo />
-          </div>
+          <Logo onDark className="h-11 w-auto" />
           <p className="text-sm leading-relaxed text-brand-100">
             Crafting seamless journeys — everywhere. B2B travel, itineraries and
             contracted rates in one place.

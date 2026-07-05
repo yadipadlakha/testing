@@ -35,3 +35,6 @@ next-env.d.ts
 
 # supplier rate workbooks (proprietary — do not commit)
 *.xlsx
+
+# user-uploaded catalog images
+/public/uploads

@@ -6,7 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AutoSubmitSelect } from "@/components/auto-submit-select";
 import { GenerateItineraryForm } from "@/components/generate-itinerary-form";
+import { ManualItineraryForm } from "@/components/manual-itinerary-form";
+import { AddDayForm } from "@/components/add-day-form";
+import { AddActivityForm } from "@/components/add-activity-form";
 import { updateTripStatus, deleteItinerary } from "@/lib/actions/trip-actions";
+import { deleteItineraryDay, deleteItineraryActivity } from "@/lib/actions/itinerary-actions";
 import {
   TRIP_STATUSES,
   TRIP_STATUS_LABEL,
@@ -62,14 +66,26 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
       </div>
 
       {!trip.itinerary ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>AI Itinerary Builder</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <GenerateItineraryForm tripId={trip.id} />
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>AI Itinerary Builder</CardTitle>
+              <p className="text-sm text-slate-500">Requires an Anthropic API key configured on the server.</p>
+            </CardHeader>
+            <CardContent>
+              <GenerateItineraryForm tripId={trip.id} />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Build manually</CardTitle>
+              <p className="text-sm text-slate-500">No AI needed — add days and activities yourself to put together a quotation.</p>
+            </CardHeader>
+            <CardContent>
+              <ManualItineraryForm tripId={trip.id} />
+            </CardContent>
+          </Card>
+        </div>
       ) : (
         <div className="flex flex-col gap-6">
           <Card>
@@ -112,10 +128,17 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
                     <CardTitle>
                       Day {day.dayNumber}: {day.title}
                     </CardTitle>
-                    {day.location ? <span className="text-xs text-slate-500">{day.location}</span> : null}
+                    <div className="flex items-center gap-3">
+                      {day.location ? <span className="text-xs text-slate-500">{day.location}</span> : null}
+                      <form action={deleteItineraryDay.bind(null, trip.id, day.id)}>
+                        <button type="submit" className="text-slate-400 hover:text-red-500" title="Delete day">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </form>
+                    </div>
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex flex-col gap-3">
                   <ul className="flex flex-col divide-y divide-slate-100">
                     {day.activities.map((activity) => (
                       <li key={activity.id} className="flex gap-4 py-3">
@@ -142,12 +165,22 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
                               : ""}
                           </p>
                         </div>
+                        <form action={deleteItineraryActivity.bind(null, trip.id, activity.id)}>
+                          <button type="submit" className="text-slate-400 hover:text-red-500" title="Delete activity">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </form>
                       </li>
                     ))}
+                    {day.activities.length === 0 ? (
+                      <li className="py-3 text-sm text-slate-400">No activities yet.</li>
+                    ) : null}
                   </ul>
+                  <AddActivityForm tripId={trip.id} dayId={day.id} />
                 </CardContent>
               </Card>
             ))}
+            <AddDayForm tripId={trip.id} itineraryId={trip.itinerary.id} />
           </div>
         </div>
       )}

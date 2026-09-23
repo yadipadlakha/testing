@@ -24,6 +24,11 @@ declare module "@auth/core/jwt" {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  // Required when self-hosting behind a reverse proxy or Docker's port
+  // mapping (as opposed to a platform like Vercel that sets this for you) —
+  // otherwise Auth.js rejects the incoming Host header as untrusted.
+  // https://errors.authjs.dev#untrustedhost
+  trustHost: true,
   session: { strategy: "jwt" },
   pages: {
     signIn: "/login",

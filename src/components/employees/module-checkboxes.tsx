@@ -1,10 +1,10 @@
 import type { Module } from "@prisma/client";
 
-const MODULES: { value: Module; label: string; comingSoon?: boolean }[] = [
+const MODULES: { value: Module; label: string }[] = [
   { value: "ENQUIRY", label: "Enquiry" },
-  { value: "HOTEL", label: "Hotel", comingSoon: true },
-  { value: "SIGHTSEEING", label: "Sightseeing", comingSoon: true },
-  { value: "TRANSPORT", label: "Transport", comingSoon: true },
+  { value: "HOTEL", label: "Hotel" },
+  { value: "SIGHTSEEING", label: "Sightseeing" },
+  { value: "TRANSPORT", label: "Transport" },
 ];
 
 export function ModuleCheckboxes({ defaultChecked = [] }: { defaultChecked?: Module[] }) {
@@ -23,9 +23,6 @@ export function ModuleCheckboxes({ defaultChecked = [] }: { defaultChecked?: Mod
             className="h-4 w-4 accent-primary"
           />
           <span className="font-medium text-foreground">{module.label}</span>
-          {module.comingSoon ? (
-            <span className="ml-auto text-xs text-muted-foreground">Coming soon</span>
-          ) : null}
         </label>
       ))}
     </div>

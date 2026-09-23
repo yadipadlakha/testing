@@ -10,7 +10,6 @@ import {
   MapPinned,
   Bus,
   Users,
-  Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/logo";
@@ -20,7 +19,6 @@ type NavItem = {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   show: boolean;
-  comingSoon?: boolean;
 };
 
 export function Sidebar({
@@ -36,9 +34,9 @@ export function Sidebar({
   const items: NavItem[] = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, show: true },
     { href: "/enquiry", label: "Enquiry", icon: Inbox, show: has("ENQUIRY") },
-    { href: "/hotel", label: "Hotel", icon: Building2, show: has("HOTEL"), comingSoon: true },
-    { href: "/sightseeing", label: "Sightseeing", icon: MapPinned, show: has("SIGHTSEEING"), comingSoon: true },
-    { href: "/transport", label: "Transport", icon: Bus, show: has("TRANSPORT"), comingSoon: true },
+    { href: "/hotel", label: "Hotel", icon: Building2, show: has("HOTEL") },
+    { href: "/sightseeing", label: "Sightseeing", icon: MapPinned, show: has("SIGHTSEEING") },
+    { href: "/transport", label: "Transport", icon: Bus, show: has("TRANSPORT") },
   ];
 
   return (
@@ -55,20 +53,14 @@ export function Sidebar({
             return (
               <Link
                 key={item.href}
-                href={item.comingSoon ? "#" : item.href}
-                aria-disabled={item.comingSoon}
+                href={item.href}
                 className={cn(
                   "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                  item.comingSoon
-                    ? "cursor-not-allowed text-muted-foreground/60"
-                    : active
-                      ? "bg-primary text-primary-foreground"
-                      : "text-foreground hover:bg-muted",
+                  active ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted",
                 )}
               >
                 <Icon className="h-4 w-4 shrink-0" />
                 <span className="flex-1">{item.label}</span>
-                {item.comingSoon ? <Lock className="h-3.5 w-3.5 shrink-0" /> : null}
               </Link>
             );
           })}

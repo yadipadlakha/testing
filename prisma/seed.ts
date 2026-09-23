@@ -26,7 +26,7 @@ async function main() {
         passwordHash,
         role: "EMPLOYEE",
         createdById: admin.id,
-        permissions: { create: [{ module: "ENQUIRY" }] },
+        permissions: { create: [{ module: "ENQUIRY" }, { module: "HOTEL" }] },
       },
     });
     console.log(`Created demo employee. Login with ${employeeEmail} / password123`);
@@ -92,6 +92,105 @@ async function main() {
     console.log(`Created ${sampleEnquiries.length} sample enquiries.`);
   } else {
     console.log(`Sample enquiries already exist (${existingEnquiries}), skipping.`);
+  }
+
+  const existingHotels = await prisma.hotel.count();
+  if (existingHotels === 0) {
+    await prisma.hotel.createMany({
+      data: [
+        {
+          name: "Cinnamon Grand Colombo",
+          destination: "Sri Lanka",
+          starRating: 5,
+          pricePerNight: 12500,
+          contactPerson: "Ravi Fernando",
+          contactPhone: "+94 11 249 7000",
+          createdById: admin.id,
+        },
+        {
+          name: "Conrad Maldives Rangali Island",
+          destination: "Maldives",
+          starRating: 5,
+          pricePerNight: 45000,
+          contactPerson: "Aisha Waheed",
+          contactPhone: "+960 668 0629",
+          createdById: admin.id,
+        },
+        {
+          name: "Hotel Nikko Narita",
+          destination: "Japan",
+          starRating: 4,
+          pricePerNight: 9800,
+          contactPerson: "Kenji Sato",
+          contactPhone: "+81 476 32 0031",
+          createdById: admin.id,
+        },
+      ],
+    });
+    console.log("Created 3 sample hotels.");
+  } else {
+    console.log(`Sample hotels already exist (${existingHotels}), skipping.`);
+  }
+
+  const existingActivities = await prisma.sightseeing.count();
+  if (existingActivities === 0) {
+    await prisma.sightseeing.createMany({
+      data: [
+        {
+          name: "Sigiriya Rock Fortress Tour",
+          destination: "Sri Lanka",
+          duration: "Full Day",
+          price: 3500,
+          createdById: admin.id,
+        },
+        {
+          name: "Mount Fuji & Hakone Day Trip",
+          destination: "Japan",
+          duration: "Full Day",
+          price: 6200,
+          createdById: admin.id,
+        },
+        {
+          name: "Sunset Dolphin Cruise",
+          destination: "Maldives",
+          duration: "Half Day",
+          price: 2800,
+          createdById: admin.id,
+        },
+      ],
+    });
+    console.log("Created 3 sample sightseeing activities.");
+  } else {
+    console.log(`Sample sightseeing activities already exist (${existingActivities}), skipping.`);
+  }
+
+  const existingVehicles = await prisma.transport.count();
+  if (existingVehicles === 0) {
+    await prisma.transport.createMany({
+      data: [
+        {
+          vehicleType: "Sedan",
+          destination: "Sri Lanka",
+          capacity: 4,
+          pricePerDay: 4500,
+          contactPerson: "Sunil Perera",
+          contactPhone: "+94 77 123 4567",
+          createdById: admin.id,
+        },
+        {
+          vehicleType: "Tempo Traveller",
+          destination: "Japan",
+          capacity: 12,
+          pricePerDay: 15000,
+          contactPerson: "Hiroshi Tanaka",
+          contactPhone: "+81 90 1234 5678",
+          createdById: admin.id,
+        },
+      ],
+    });
+    console.log("Created 2 sample transport vendors.");
+  } else {
+    console.log(`Sample transport vendors already exist (${existingVehicles}), skipping.`);
   }
 }
 

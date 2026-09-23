@@ -55,6 +55,10 @@ model User {
   allocatedEnquiries Enquiry[] @relation("AllocatedEnquiries")
   createdEnquiries   Enquiry[] @relation("CreatedEnquiries")
 
+  createdHotels      Hotel[]       @relation("CreatedHotels")
+  createdSightseeing Sightseeing[] @relation("CreatedSightseeing")
+  createdTransport   Transport[]   @relation("CreatedTransport")
+
   @@index([createdById])
 }
 
@@ -122,4 +126,61 @@ model Enquiry {
   @@index([status])
   @@index([allocatedToId])
   @@index([clientId])
+}
+
+model Hotel {
+  id            String  @id @default(cuid())
+  name          String
+  destination   String
+  starRating    Int?
+  address       String?
+  contactPerson String?
+  contactPhone  String?
+  contactEmail  String?
+  pricePerNight Int?
+  notes         String?
+
+  createdById String
+  createdBy   User   @relation("CreatedHotels", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([destination])
+}
+
+model Sightseeing {
+  id          String  @id @default(cuid())
+  name        String
+  destination String
+  duration    String?
+  price       Int?
+  description String?
+
+  createdById String
+  createdBy   User   @relation("CreatedSightseeing", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([destination])
+}
+
+model Transport {
+  id            String  @id @default(cuid())
+  vehicleType   String
+  destination   String
+  capacity      Int?
+  pricePerDay   Int?
+  contactPerson String?
+  contactPhone  String?
+  notes         String?
+
+  createdById String
+  createdBy   User   @relation("CreatedTransport", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([destination])
 }

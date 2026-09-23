@@ -7,15 +7,55 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  ADMIN
+  EMPLOYEE
+}
+
+enum Module {
+  ENQUIRY
+  HOTEL
+  SIGHTSEEING
+  TRANSPORT
+}
+
+enum EnquiryStatus {
+  NEW_QUERY
+  QUOTATION_SENT
+  ON_HOLD
+  CONVERTED
+  FOLLOW_UP
+  LOST
+}
+
+enum EnquiryType {
+  HOLIDAY_PACKAGE
+  FLIGHT_ONLY
+  HOTEL_ONLY
+  VISA
+  OTHER
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
   email        String   @unique
   passwordHash String
+  role         Role     @default(EMPLOYEE)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  createdById String?
+  createdBy   User?  @relation("EmployeeCreator", fields: [createdById], references: [id])
+  employees   User[] @relation("EmployeeCreator")
+
   resetTokens PasswordResetToken[]
+  permissions EmployeePermission[]
+
+  allocatedEnquiries Enquiry[] @relation("AllocatedEnquiries")
+  createdEnquiries   Enquiry[] @relation("CreatedEnquiries")
+
+  @@index([createdById])
 }
 
 model PasswordResetToken {
@@ -28,4 +68,58 @@ model PasswordResetToken {
   createdAt DateTime  @default(now())
 
   @@index([userId])
+}
+
+model EmployeePermission {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  module Module
+
+  @@unique([userId, module])
+}
+
+model Client {
+  id          String   @id @default(cuid())
+  name        String
+  phone       String   @unique
+  email       String?
+  companyName String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  enquiries Enquiry[]
+}
+
+model Enquiry {
+  id            String        @id @default(cuid())
+  enquiryNumber Int           @unique @default(autoincrement())
+  status        EnquiryStatus @default(NEW_QUERY)
+  type          EnquiryType   @default(HOLIDAY_PACKAGE)
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id])
+
+  travelFrom   String?
+  travelTo     String
+  travelDate   DateTime
+  durationDays Int
+  adults       Int @default(1)
+  children     Int @default(0)
+
+  followDate DateTime?
+  notes      String?
+
+  allocatedToId String?
+  allocatedTo   User?   @relation("AllocatedEnquiries", fields: [allocatedToId], references: [id])
+
+  createdById String
+  createdBy   User   @relation("CreatedEnquiries", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([allocatedToId])
+  @@index([clientId])
 }

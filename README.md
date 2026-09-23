@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TravelEverywhere
 
-## Getting Started
+B2C login and account portal for TravelEverywhere, built with Next.js, Prisma, and NextAuth.
 
-First, run the development server:
+## Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Node.js 20+
+- A PostgreSQL database (via `docker-compose.yml`, or your own instance)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Getting started
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Install dependencies (this also runs `prisma generate` automatically via `postinstall`):
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+   ```bash
+   npm install
+   ```
 
-## Learn More
+2. Copy the environment file and fill in real values:
 
-To learn more about Next.js, take a look at the following resources:
+   ```bash
+   cp .env.example .env
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3. Start Postgres (skip if you already have a database running):
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   ```bash
+   docker compose up -d
+   ```
 
-## Deploy on Vercel
+4. Push the schema and seed a demo admin user:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+   ```bash
+   npm run db:push
+   npm run db:seed
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+5. Start the dev server:
+
+   ```bash
+   npm run dev
+   ```
+
+   Open [http://localhost:3000](http://localhost:3000) and sign in with the seeded demo admin (`admin@traveleverywhere.com` / `password123`).
+
+## Troubleshooting
+
+- **`'next' is not recognized...`** — `npm install` hasn't been run (or didn't finish) in this folder, so `node_modules` doesn't exist yet.
+- **`@prisma/client did not initialize yet...`** — run `npx prisma generate`. This now runs automatically after `npm install`, but if `node_modules` was restored from a cache or copied between machines, regenerate it manually.
+
+## Scripts
+
+- `npm run dev` — start the dev server
+- `npm run build` / `npm run start` — production build and start
+- `npm run db:push` — sync the Prisma schema to the database
+- `npm run db:migrate` — create a dev migration
+- `npm run db:seed` — seed the demo admin user
+- `npm run db:studio` — open Prisma Studio

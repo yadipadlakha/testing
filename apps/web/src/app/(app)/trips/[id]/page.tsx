@@ -16,6 +16,11 @@ import {
   TRIP_STATUS_LABEL,
   ACTIVITY_CATEGORY_LABEL,
   ACTIVITY_CATEGORY_VARIANT,
+  ENQUIRY_TYPE_LABEL,
+  SERVICE_TYPE_LABEL,
+  FLIGHT_CLASS_LABEL,
+  HOTEL_TYPE_LABEL,
+  VEHICLE_TYPE_LABEL,
 } from "@/lib/labels";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { RefreshCw, Trash2 } from "lucide-react";
@@ -28,6 +33,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
     where: { id, agencyId: session.user.agencyId },
     include: {
       client: { select: { id: true, name: true } },
+      owner: { select: { name: true } },
       itinerary: {
         include: { days: { orderBy: { dayNumber: "asc" }, include: { activities: { orderBy: { order: "asc" } } } } },
       },
@@ -64,6 +70,71 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
           options={TRIP_STATUSES.map((status) => ({ value: status, label: TRIP_STATUS_LABEL[status] }))}
         />
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Enquiry details</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm sm:grid-cols-3 lg:grid-cols-4">
+            <div>
+              <dt className="text-xs text-muted-foreground uppercase">Agent</dt>
+              <dd className="text-foreground">{trip.owner?.name ?? "Unassigned"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground uppercase">Enquiry for</dt>
+              <dd className="text-foreground">
+                {trip.enquiryType ? ENQUIRY_TYPE_LABEL[trip.enquiryType] : "—"}
+                {trip.agentAsTraveler ? " (agent is traveler)" : ""}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground uppercase">Travel from</dt>
+              <dd className="text-foreground">{trip.travelFrom ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground uppercase">No. of days</dt>
+              <dd className="text-foreground">{trip.numDays ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground uppercase">Nationality</dt>
+              <dd className="text-foreground">{trip.nationality ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground uppercase">Flight class</dt>
+              <dd className="text-foreground">{trip.flightClass ? FLIGHT_CLASS_LABEL[trip.flightClass] : "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground uppercase">Hotel type</dt>
+              <dd className="text-foreground">{trip.hotelType ? HOTEL_TYPE_LABEL[trip.hotelType] : "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground uppercase">Vehicle type</dt>
+              <dd className="text-foreground">{trip.vehicleType ? VEHICLE_TYPE_LABEL[trip.vehicleType] : "—"}</dd>
+            </div>
+            <div className="col-span-2 sm:col-span-3 lg:col-span-4">
+              <dt className="text-xs text-muted-foreground uppercase">Services</dt>
+              <dd className="mt-1 flex flex-wrap gap-1.5">
+                {trip.services.length === 0 ? (
+                  <span className="text-foreground">—</span>
+                ) : (
+                  trip.services.map((service) => (
+                    <Badge key={service} variant="slate">
+                      {SERVICE_TYPE_LABEL[service]}
+                    </Badge>
+                  ))
+                )}
+              </dd>
+            </div>
+            {trip.comment ? (
+              <div className="col-span-2 sm:col-span-3 lg:col-span-4">
+                <dt className="text-xs text-muted-foreground uppercase">Comment</dt>
+                <dd className="text-foreground whitespace-pre-wrap">{trip.comment}</dd>
+              </div>
+            ) : null}
+          </dl>
+        </CardContent>
+      </Card>
 
       {!trip.itinerary ? (
         <div className="grid grid-cols-2 gap-6">

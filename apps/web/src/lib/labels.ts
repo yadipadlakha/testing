@@ -1,5 +1,15 @@
 import type { Badge } from "@/components/ui/badge";
-import type { LeadStage, TripStatus, InteractionType, ActivityCategory } from "@prisma/client";
+import type {
+  LeadStage,
+  TripStatus,
+  InteractionType,
+  ActivityCategory,
+  EnquiryType,
+  ServiceType,
+  FlightClass,
+  HotelType,
+  VehicleType,
+} from "@prisma/client";
 
 type BadgeVariant = NonNullable<React.ComponentProps<typeof Badge>["variant"]>;
 
@@ -90,3 +100,66 @@ export const ACTIVITY_CATEGORY_VARIANT: Record<ActivityCategory, BadgeVariant> =
   ACTIVITY: "default",
   FREE_TIME: "green",
 };
+
+export const ENQUIRY_TYPE_LABEL: Record<EnquiryType, string> = {
+  INDIVIDUAL: "Individual",
+  FAMILY: "Family",
+  GROUP: "Group",
+  CORPORATE: "Corporate",
+  HONEYMOON: "Honeymoon",
+};
+
+export const ENQUIRY_TYPES: EnquiryType[] = ["INDIVIDUAL", "FAMILY", "GROUP", "CORPORATE", "HONEYMOON"];
+
+export const SERVICE_TYPE_LABEL: Record<ServiceType, string> = {
+  FLIGHT: "Flight",
+  HOTEL: "Hotel",
+  VISA: "Visa",
+  PACKAGE: "Package",
+  TRANSPORT: "Transport",
+  CRUISE: "Cruise",
+  ACTIVITY: "Activity",
+  INSURANCE: "Insurance",
+  TRAIN: "Train",
+};
+
+export const SERVICE_TYPES: ServiceType[] = [
+  "FLIGHT",
+  "HOTEL",
+  "VISA",
+  "PACKAGE",
+  "TRANSPORT",
+  "CRUISE",
+  "ACTIVITY",
+  "INSURANCE",
+  "TRAIN",
+];
+
+export const FLIGHT_CLASS_LABEL: Record<FlightClass, string> = {
+  ECONOMY: "Economy",
+  PREMIUM_ECONOMY: "Premium Economy",
+  BUSINESS: "Business",
+  FIRST: "First",
+};
+
+export const FLIGHT_CLASSES: FlightClass[] = ["ECONOMY", "PREMIUM_ECONOMY", "BUSINESS", "FIRST"];
+
+export const HOTEL_TYPE_LABEL: Record<HotelType, string> = {
+  BUDGET: "Budget",
+  STANDARD: "Standard",
+  DELUXE: "Deluxe",
+  LUXURY: "Luxury",
+};
+
+export const HOTEL_TYPES: HotelType[] = ["BUDGET", "STANDARD", "DELUXE", "LUXURY"];
+
+export const VEHICLE_TYPE_LABEL: Record<VehicleType, string> = {
+  NONE: "None",
+  SEDAN: "Sedan",
+  SUV: "SUV",
+  VAN: "Van",
+  COACH: "Coach",
+  LUXURY_CAR: "Luxury car",
+};
+
+export const VEHICLE_TYPES: VehicleType[] = ["NONE", "SEDAN", "SUV", "VAN", "COACH", "LUXURY_CAR"];

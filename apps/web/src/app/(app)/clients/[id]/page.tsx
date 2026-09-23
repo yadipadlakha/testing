@@ -38,6 +38,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">{client.name}</h1>
+          {client.companyName ? <p className="text-sm text-muted-foreground">{client.companyName}</p> : null}
           <div className="mt-1 flex items-center gap-3 text-sm text-muted-foreground">
             {client.email ? (
               <span className="flex items-center gap-1">
@@ -139,6 +140,24 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Source</p>
                 <p className="text-foreground">{client.source ?? "—"}</p>
               </div>
+              {client.whatsapp ? (
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">WhatsApp</p>
+                  <p className="text-foreground">{client.whatsapp}</p>
+                </div>
+              ) : null}
+              {client.city || client.country ? (
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Location</p>
+                  <p className="text-foreground">{[client.city, client.country].filter(Boolean).join(", ")}</p>
+                </div>
+              ) : null}
+              {client.address ? (
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Address</p>
+                  <p className="text-foreground">{client.address}</p>
+                </div>
+              ) : null}
               <div>
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Added</p>
                 <p className="text-foreground">{formatDate(client.createdAt)}</p>

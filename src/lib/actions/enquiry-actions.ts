@@ -7,19 +7,22 @@ import { prisma } from "@/lib/prisma";
 import { requireModuleAccess } from "@/lib/permissions";
 import type { ActionState } from "@/lib/actions/auth-actions";
 
+const emptyToUndefined = (val: unknown) => (val === "" ? undefined : val);
+
 const enquirySchema = z.object({
   clientName: z.string().min(1, "Client name is required"),
   clientPhone: z.string().min(6, "A valid phone number is required"),
   clientEmail: z.union([z.literal(""), z.string().email()]).optional(),
   companyName: z.string().optional(),
   type: z.enum(["HOLIDAY_PACKAGE", "FLIGHT_ONLY", "HOTEL_ONLY", "VISA", "OTHER"]),
-  travelFrom: z.string().optional(),
   travelTo: z.string().min(1, "Destination is required"),
   travelDate: z.string().min(1, "Travel date is required"),
   durationDays: z.coerce.number().int().min(1, "Duration must be at least 1 day"),
   adults: z.coerce.number().int().min(1, "At least 1 adult is required"),
   children: z.coerce.number().int().min(0).default(0),
-  followDate: z.string().optional(),
+  childrenAges: z.string().optional(),
+  hotelCategory: z.preprocess(emptyToUndefined, z.coerce.number().int().min(3).max(5).optional()),
+  currency: z.string().min(1, "Currency is required"),
   notes: z.string().optional(),
   allocatedToId: z.string().optional(),
 });
@@ -63,13 +66,14 @@ export async function createEnquiry(_prevState: ActionState, formData: FormData)
     data: {
       clientId: client.id,
       type: data.type,
-      travelFrom: data.travelFrom || undefined,
       travelTo: data.travelTo,
       travelDate: new Date(data.travelDate),
       durationDays: data.durationDays,
       adults: data.adults,
       children: data.children,
-      followDate: data.followDate ? new Date(data.followDate) : undefined,
+      childrenAges: data.childrenAges || undefined,
+      hotelCategory: data.hotelCategory,
+      currency: data.currency,
       notes: data.notes || undefined,
       allocatedToId,
       createdById: session.user.id,
@@ -114,13 +118,14 @@ export async function updateEnquiry(
     data: {
       clientId: client.id,
       type: data.type,
-      travelFrom: data.travelFrom || undefined,
       travelTo: data.travelTo,
       travelDate: new Date(data.travelDate),
       durationDays: data.durationDays,
       adults: data.adults,
       children: data.children,
-      followDate: data.followDate ? new Date(data.followDate) : null,
+      childrenAges: data.childrenAges || null,
+      hotelCategory: data.hotelCategory ?? null,
+      currency: data.currency,
       notes: data.notes || undefined,
       allocatedToId,
     },

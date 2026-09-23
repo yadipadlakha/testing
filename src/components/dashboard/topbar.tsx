@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Module } from "@prisma/client";
-import { LayoutDashboard, Inbox, Building2, MapPinned, Bus, Users } from "lucide-react";
+import { LayoutDashboard, Inbox, Contact, Building2, MapPinned, Bus, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { signOutAction } from "@/lib/actions/auth-actions";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ export function Topbar({
   const mobileItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, show: true },
     { href: "/enquiry", label: "Enquiry", icon: Inbox, show: has("ENQUIRY") },
+    { href: "/clients", label: "Client Details", icon: Contact, show: has("ENQUIRY") },
     { href: "/hotel", label: "Hotel", icon: Building2, show: has("HOTEL") },
     { href: "/sightseeing", label: "Sightseeing", icon: MapPinned, show: has("SIGHTSEEING") },
     { href: "/transport", label: "Transport", icon: Bus, show: has("TRANSPORT") },

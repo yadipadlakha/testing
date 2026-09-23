@@ -168,7 +168,6 @@ export default async function EnquiryListPage({
                 <div>
                   <p className="flex items-center gap-1 text-foreground">
                     <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                    {enquiry.travelFrom ? `${enquiry.travelFrom} → ` : ""}
                     {enquiry.travelTo}
                   </p>
                   <p className="text-xs text-muted-foreground">
@@ -181,9 +180,10 @@ export default async function EnquiryListPage({
                     {enquiry.adults} Adult{enquiry.adults > 1 ? "s" : ""}
                     {enquiry.children > 0 ? `, ${enquiry.children} Child${enquiry.children > 1 ? "ren" : ""}` : ""}
                   </p>
-                  {enquiry.followDate ? (
-                    <p className="text-xs text-muted-foreground">Follow-up: {formatDate(enquiry.followDate)}</p>
-                  ) : null}
+                  <p className="text-xs text-muted-foreground">
+                    {enquiry.currency}
+                    {enquiry.hotelCategory ? ` · ${enquiry.hotelCategory} Star hotel` : ""}
+                  </p>
                 </div>
                 <div>
                   <p className="text-foreground">Allocated to</p>

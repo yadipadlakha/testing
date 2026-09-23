@@ -52,20 +52,22 @@ async function main() {
       clientIndex: number;
       status: "NEW_QUERY" | "QUOTATION_SENT" | "ON_HOLD" | "CONVERTED" | "FOLLOW_UP" | "LOST";
       travelTo: string;
-      travelFrom?: string;
       daysFromNow: number;
       durationDays: number;
       adults: number;
       children: number;
+      childrenAges?: string;
+      hotelCategory?: number;
+      currency: string;
       allocatedTo: "admin" | "employee";
     }> = [
-      { clientIndex: 0, status: "NEW_QUERY", travelTo: "Sri Lanka", daysFromNow: 23, durationDays: 6, adults: 3, children: 0, allocatedTo: "employee" },
-      { clientIndex: 1, status: "NEW_QUERY", travelTo: "Hong Kong, Macau", daysFromNow: 84, durationDays: 4, adults: 3, children: 0, allocatedTo: "admin" },
-      { clientIndex: 2, status: "QUOTATION_SENT", travelTo: "Japan", daysFromNow: 69, durationDays: 11, adults: 5, children: 2, allocatedTo: "employee" },
-      { clientIndex: 3, status: "ON_HOLD", travelTo: "Seychelles", daysFromNow: 134, durationDays: 6, adults: 2, children: 0, allocatedTo: "admin" },
-      { clientIndex: 4, status: "FOLLOW_UP", travelTo: "Mauritius", daysFromNow: 75, durationDays: 4, adults: 2, children: 0, allocatedTo: "employee" },
-      { clientIndex: 0, status: "CONVERTED", travelTo: "Maldives", daysFromNow: 45, durationDays: 5, adults: 2, children: 1, allocatedTo: "employee" },
-      { clientIndex: 1, status: "LOST", travelTo: "Bali", daysFromNow: -10, durationDays: 7, adults: 2, children: 0, allocatedTo: "admin" },
+      { clientIndex: 0, status: "NEW_QUERY", travelTo: "Sri Lanka", daysFromNow: 23, durationDays: 6, adults: 3, children: 0, hotelCategory: 4, currency: "LKR", allocatedTo: "employee" },
+      { clientIndex: 1, status: "NEW_QUERY", travelTo: "Hong Kong, Macau", daysFromNow: 84, durationDays: 4, adults: 3, children: 0, currency: "HKD", allocatedTo: "admin" },
+      { clientIndex: 2, status: "QUOTATION_SENT", travelTo: "Japan", daysFromNow: 69, durationDays: 11, adults: 5, children: 2, childrenAges: "8, 12", hotelCategory: 4, currency: "JPY", allocatedTo: "employee" },
+      { clientIndex: 3, status: "ON_HOLD", travelTo: "Seychelles", daysFromNow: 134, durationDays: 6, adults: 2, children: 0, hotelCategory: 5, currency: "SCR", allocatedTo: "admin" },
+      { clientIndex: 4, status: "FOLLOW_UP", travelTo: "Mauritius", daysFromNow: 75, durationDays: 4, adults: 2, children: 0, currency: "MUR", allocatedTo: "employee" },
+      { clientIndex: 0, status: "CONVERTED", travelTo: "Maldives", daysFromNow: 45, durationDays: 5, adults: 2, children: 1, childrenAges: "5", hotelCategory: 5, currency: "MVR", allocatedTo: "employee" },
+      { clientIndex: 1, status: "LOST", travelTo: "Bali", daysFromNow: -10, durationDays: 7, adults: 2, children: 0, currency: "IDR", allocatedTo: "admin" },
     ];
 
     const now = Date.now();
@@ -78,12 +80,13 @@ async function main() {
           status: e.status,
           type: "HOLIDAY_PACKAGE",
           travelTo: e.travelTo,
-          travelFrom: e.travelFrom,
           travelDate: new Date(now + e.daysFromNow * day),
           durationDays: e.durationDays,
           adults: e.adults,
           children: e.children,
-          followDate: e.status === "FOLLOW_UP" ? new Date(now + 3 * day) : undefined,
+          childrenAges: e.childrenAges,
+          hotelCategory: e.hotelCategory,
+          currency: e.currency,
           allocatedToId: e.allocatedTo === "admin" ? admin.id : employee.id,
           createdById: admin.id,
         },

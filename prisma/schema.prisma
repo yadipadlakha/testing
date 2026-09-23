@@ -104,15 +104,17 @@ model Enquiry {
   clientId String
   client   Client @relation(fields: [clientId], references: [id])
 
-  travelFrom   String?
   travelTo     String
   travelDate   DateTime
   durationDays Int
-  adults       Int @default(1)
-  children     Int @default(0)
+  adults       Int     @default(1)
+  children     Int     @default(0)
+  childrenAges String?
 
-  followDate DateTime?
-  notes      String?
+  hotelCategory Int?
+  currency      String @default("INR")
+
+  notes String?
 
   allocatedToId String?
   allocatedTo   User?   @relation("AllocatedEnquiries", fields: [allocatedToId], references: [id])

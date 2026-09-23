@@ -6,6 +6,7 @@ import type { Module } from "@prisma/client";
 import {
   LayoutDashboard,
   Inbox,
+  Contact,
   Building2,
   MapPinned,
   Bus,
@@ -34,6 +35,7 @@ export function Sidebar({
   const items: NavItem[] = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, show: true },
     { href: "/enquiry", label: "Enquiry", icon: Inbox, show: has("ENQUIRY") },
+    { href: "/clients", label: "Client Details", icon: Contact, show: has("ENQUIRY") },
     { href: "/hotel", label: "Hotel", icon: Building2, show: has("HOTEL") },
     { href: "/sightseeing", label: "Sightseeing", icon: MapPinned, show: has("SIGHTSEEING") },
     { href: "/transport", label: "Transport", icon: Bus, show: has("TRANSPORT") },

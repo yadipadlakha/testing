@@ -39,6 +39,41 @@ export const TYPE_LABELS: Record<EnquiryType, string> = {
   OTHER: "Other",
 };
 
+export const HOTEL_CATEGORIES = [3, 4, 5] as const;
+
+export const CURRENCIES: { code: string; label: string }[] = [
+  { code: "INR", label: "INR — Indian Rupee" },
+  { code: "USD", label: "USD — US Dollar" },
+  { code: "EUR", label: "EUR — Euro" },
+  { code: "GBP", label: "GBP — British Pound" },
+  { code: "AED", label: "AED — UAE Dirham" },
+  { code: "SGD", label: "SGD — Singapore Dollar" },
+  { code: "AUD", label: "AUD — Australian Dollar" },
+  { code: "CAD", label: "CAD — Canadian Dollar" },
+  { code: "JPY", label: "JPY — Japanese Yen" },
+  { code: "CHF", label: "CHF — Swiss Franc" },
+  { code: "THB", label: "THB — Thai Baht" },
+  { code: "LKR", label: "LKR — Sri Lankan Rupee" },
+  { code: "MVR", label: "MVR — Maldivian Rufiyaa" },
+  { code: "IDR", label: "IDR — Indonesian Rupiah" },
+  { code: "MYR", label: "MYR — Malaysian Ringgit" },
+  { code: "NZD", label: "NZD — New Zealand Dollar" },
+  { code: "ZAR", label: "ZAR — South African Rand" },
+  { code: "SAR", label: "SAR — Saudi Riyal" },
+  { code: "QAR", label: "QAR — Qatari Riyal" },
+  { code: "HKD", label: "HKD — Hong Kong Dollar" },
+  { code: "CNY", label: "CNY — Chinese Yuan" },
+  { code: "KRW", label: "KRW — South Korean Won" },
+  { code: "VND", label: "VND — Vietnamese Dong" },
+  { code: "PHP", label: "PHP — Philippine Peso" },
+  { code: "EGP", label: "EGP — Egyptian Pound" },
+  { code: "TRY", label: "TRY — Turkish Lira" },
+  { code: "MUR", label: "MUR — Mauritian Rupee" },
+  { code: "SCR", label: "SCR — Seychellois Rupee" },
+  { code: "NPR", label: "NPR — Nepalese Rupee" },
+  { code: "BDT", label: "BDT — Bangladeshi Taka" },
+];
+
 export function formatEnquiryNumber(enquiryNumber: number) {
   return `ENQ-${String(enquiryNumber).padStart(5, "0")}`;
 }

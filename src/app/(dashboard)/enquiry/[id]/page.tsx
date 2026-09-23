@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Pencil, Phone, Mail, Building2, MapPin, CalendarDays, Users as UsersIcon, Clock } from "lucide-react";
+import { Pencil, Phone, Mail, Building2, MapPin, CalendarDays, Users as UsersIcon, Star, Coins } from "lucide-react";
 import { requireModuleAccess } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { updateEnquiryStatus } from "@/lib/actions/enquiry-actions";
@@ -100,7 +100,6 @@ export default async function EnquiryDetailPage({ params }: { params: Promise<{ 
           </p>
           <p className="flex items-center gap-2 text-sm text-foreground">
             <MapPin className="h-4 w-4 text-muted-foreground" />
-            {enquiry.travelFrom ? `${enquiry.travelFrom} → ` : ""}
             {enquiry.travelTo}
           </p>
           <p className="flex items-center gap-2 text-sm text-foreground">
@@ -111,12 +110,16 @@ export default async function EnquiryDetailPage({ params }: { params: Promise<{ 
             <UsersIcon className="h-4 w-4 text-muted-foreground" />
             {enquiry.adults} Adult{enquiry.adults > 1 ? "s" : ""}
             {enquiry.children > 0 ? `, ${enquiry.children} Child${enquiry.children > 1 ? "ren" : ""}` : ""}
+            {enquiry.childrenAges ? ` (ages ${enquiry.childrenAges})` : ""}
           </p>
-          {enquiry.followDate ? (
+          {enquiry.hotelCategory ? (
             <p className="flex items-center gap-2 text-sm text-foreground">
-              <Clock className="h-4 w-4 text-muted-foreground" /> Follow-up on {formatDate(enquiry.followDate)}
+              <Star className="h-4 w-4 text-muted-foreground" /> {enquiry.hotelCategory} Star hotel
             </p>
           ) : null}
+          <p className="flex items-center gap-2 text-sm text-foreground">
+            <Coins className="h-4 w-4 text-muted-foreground" /> {enquiry.currency}
+          </p>
           <p className="text-sm text-foreground">Allocated to {enquiry.allocatedTo?.name ?? "Unassigned"}</p>
         </CardContent>
       </Card>

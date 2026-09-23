@@ -8,7 +8,8 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { TYPE_LABELS } from "@/lib/enquiry";
+import { ClientFields } from "@/components/enquiry/client-fields";
+import { TYPE_LABELS, HOTEL_CATEGORIES, CURRENCIES } from "@/lib/enquiry";
 
 type EnquiryFormValues = {
   clientName?: string;
@@ -16,13 +17,14 @@ type EnquiryFormValues = {
   clientEmail?: string;
   companyName?: string;
   type?: string;
-  travelFrom?: string;
   travelTo?: string;
   travelDate?: string;
   durationDays?: number;
   adults?: number;
   children?: number;
-  followDate?: string;
+  childrenAges?: string;
+  hotelCategory?: number | "";
+  currency?: string;
   notes?: string;
   allocatedToId?: string;
 };
@@ -50,23 +52,15 @@ export function EnquiryForm({
         <CardHeader>
           <CardTitle>Client details</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="clientName">Client name</Label>
-            <Input id="clientName" name="clientName" defaultValue={v.clientName} required />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="clientPhone">Mobile number</Label>
-            <Input id="clientPhone" name="clientPhone" defaultValue={v.clientPhone} required />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="clientEmail">Email</Label>
-            <Input id="clientEmail" name="clientEmail" type="email" defaultValue={v.clientEmail} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="companyName">Agency / company name</Label>
-            <Input id="companyName" name="companyName" defaultValue={v.companyName} />
-          </div>
+        <CardContent>
+          <ClientFields
+            defaultValues={{
+              clientName: v.clientName,
+              clientPhone: v.clientPhone,
+              clientEmail: v.clientEmail,
+              companyName: v.companyName,
+            }}
+          />
         </CardContent>
       </Card>
 
@@ -86,10 +80,6 @@ export function EnquiryForm({
             </Select>
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="travelFrom">Travel from</Label>
-            <Input id="travelFrom" name="travelFrom" defaultValue={v.travelFrom} />
-          </div>
-          <div className="flex flex-col gap-1.5">
             <Label htmlFor="travelTo">Travel to (destination)</Label>
             <Input id="travelTo" name="travelTo" defaultValue={v.travelTo} required />
           </div>
@@ -102,16 +92,37 @@ export function EnquiryForm({
             <Input id="durationDays" name="durationDays" type="number" min={1} defaultValue={v.durationDays ?? 1} required />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="followDate">Follow-up date</Label>
-            <Input id="followDate" name="followDate" type="date" defaultValue={v.followDate} />
-          </div>
-          <div className="flex flex-col gap-1.5">
             <Label htmlFor="adults">Adults</Label>
             <Input id="adults" name="adults" type="number" min={1} defaultValue={v.adults ?? 1} required />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="children">Children</Label>
             <Input id="children" name="children" type="number" min={0} defaultValue={v.children ?? 0} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="childrenAges">Child ages</Label>
+            <Input id="childrenAges" name="childrenAges" placeholder="e.g. 5, 9" defaultValue={v.childrenAges} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="hotelCategory">Hotel category</Label>
+            <Select id="hotelCategory" name="hotelCategory" defaultValue={v.hotelCategory ?? ""}>
+              <option value="">Not specified</option>
+              {HOTEL_CATEGORIES.map((stars) => (
+                <option key={stars} value={stars}>
+                  {stars} Star
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="currency">Currency</Label>
+            <Select id="currency" name="currency" defaultValue={v.currency ?? "INR"}>
+              {CURRENCIES.map((currency) => (
+                <option key={currency.code} value={currency.code}>
+                  {currency.label}
+                </option>
+              ))}
+            </Select>
           </div>
           {isAdmin ? (
             <div className="flex flex-col gap-1.5">

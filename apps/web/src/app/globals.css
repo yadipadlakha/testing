@@ -1,0 +1,91 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design tokens — see /docs/UI_DESIGN_SYSTEM.md §1.
+ * Light theme only for Phase 1 (no dark dashboard per the design brief);
+ * the token structure below is dark-mode-ready for a later phase.
+ */
+:root {
+  --radius: 0.5rem;
+
+  --background: #f5f7fa;
+  --foreground: #172033;
+
+  --card: #ffffff;
+  --card-foreground: #172033;
+
+  --popover: #ffffff;
+  --popover-foreground: #172033;
+
+  /* Surface color (nav/sidebar), not the action color — see §1.2. */
+  --primary: #0b1f33;
+  --primary-foreground: #ffffff;
+
+  --secondary: #12b8a6;
+  --secondary-foreground: #ffffff;
+
+  /* Primary action color (buttons, links, focus ring). */
+  --accent: #1677ff;
+  --accent-foreground: #ffffff;
+
+  --muted: #eef1f6;
+  --muted-foreground: #667085;
+
+  --destructive: #f04438;
+  --destructive-foreground: #ffffff;
+
+  --success: #12b76a;
+  --warning: #f79009;
+  --highlight: #f5a623;
+
+  --border: #e1e6ee;
+  --input: #e1e6ee;
+  --ring: #1677ff;
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-highlight: var(--highlight);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --font-sans: var(--font-sans);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+    outline-color: var(--ring);
+  }
+}

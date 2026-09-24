@@ -6,12 +6,14 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireModuleAccess } from "@/lib/permissions";
 import type { ActionState } from "@/lib/actions/auth-actions";
+import type { Prisma } from "@prisma/client";
 
 const itemSchema = z.object({
   category: z.enum(["HOTEL", "SIGHTSEEING", "TRANSPORT", "EXPENSE", "GUIDE", "OTHER"]),
   description: z.string().min(1),
   quantity: z.coerce.number().int().min(1),
   unitPrice: z.coerce.number().int().min(0),
+  details: z.unknown().optional(),
 });
 
 const quotationSchema = z.object({
@@ -73,6 +75,7 @@ export async function createQuotation(
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           sortOrder: index,
+          details: item.details as Prisma.InputJsonValue | undefined,
         })),
       },
     },
@@ -120,6 +123,7 @@ export async function updateQuotation(
             quantity: item.quantity,
             unitPrice: item.unitPrice,
             sortOrder: index,
+            details: item.details as Prisma.InputJsonValue | undefined,
           })),
         },
       },

@@ -14,6 +14,8 @@ import { CURRENCIES } from "@/lib/enquiry";
 import { computeQuotationTotals } from "@/lib/quotation";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { HotelBookingSection } from "@/components/quotation/hotel-booking-section";
+import type { HotelBookingDetails } from "@/lib/hotel-booking";
 import type { QuotationItemCategory } from "@prisma/client";
 
 type ItemDraft = {
@@ -22,9 +24,10 @@ type ItemDraft = {
   description: string;
   quantity: number;
   unitPrice: number;
+  details?: unknown;
 };
 
-type HotelCatalogEntry = { id: string; name: string; destination: string; pricePerNight: number };
+type HotelCatalogEntry = { id: string; name: string; destination: string; address: string | null; currency: string; pricePerNight: number };
 type TransportCatalogEntry = { id: string; label: string; unitPrice: number; quantity: number };
 type SightseeingCatalogEntry = {
   id: string;
@@ -59,7 +62,14 @@ export function QuotationForm({
   mode: "create" | "edit";
   quotationId?: string;
   enquiryId?: string;
-  trip: { travelTo: string; travelDate: string; durationDays: number; adults: number; children: number };
+  trip: {
+    travelTo: string;
+    travelDate: string;
+    travelDateIso: string;
+    durationDays: number;
+    adults: number;
+    children: number;
+  };
   defaultValues?: {
     title?: string;
     currency?: string;
@@ -84,8 +94,14 @@ export function QuotationForm({
   const [taxPercent, setTaxPercent] = useState(v.taxPercent ?? 0);
   const [currency, setCurrency] = useState(v.currency ?? "INR");
 
-  function addItem(category: QuotationItemCategory, description: string, quantity: number, unitPrice: number) {
-    setItems((prev) => [...prev, { id: crypto.randomUUID(), category, description, quantity, unitPrice }]);
+  function addItem(
+    category: QuotationItemCategory,
+    description: string,
+    quantity: number,
+    unitPrice: number,
+    details?: unknown,
+  ) {
+    setItems((prev) => [...prev, { id: crypto.randomUUID(), category, description, quantity, unitPrice, details }]);
   }
 
   function updateItem(id: string, patch: Partial<ItemDraft>) {
@@ -96,13 +112,10 @@ export function QuotationForm({
     setItems((prev) => prev.filter((item) => item.id !== id));
   }
 
-  const nights = Math.max(1, trip.durationDays - 1);
   const totals = computeQuotationTotals(items, markupPercent, discount, taxPercent);
 
-  function addHotel(id: string) {
-    const entry = catalog.hotels.find((h) => h.id === id);
-    if (!entry) return;
-    addItem("HOTEL", `${entry.name} (${entry.destination}) — ${nights} night${nights > 1 ? "s" : ""}`, nights, entry.pricePerNight);
+  function addHotelBooking(description: string, unitPrice: number, details: HotelBookingDetails) {
+    addItem("HOTEL", description, 1, unitPrice, details);
   }
 
   function addTransport(id: string) {
@@ -226,13 +239,16 @@ export function QuotationForm({
           </div>
 
           <div className={section === "hotels" ? "" : "hidden"}>
-            <ServiceSection
-              title="Hotels"
-              addLabel="Add hotel"
-              options={catalog.hotels.map((h) => ({ id: h.id, label: `${h.name} (${h.destination})` }))}
-              onAdd={addHotel}
-              items={items.filter((i) => i.category === "HOTEL")}
+            <HotelBookingSection
+              items={items.filter((i): i is ItemDraft & { category: "HOTEL" } => i.category === "HOTEL")}
               currency={currency}
+              travelTo={trip.travelTo}
+              travelDateIso={trip.travelDateIso}
+              durationDays={trip.durationDays}
+              tripAdults={trip.adults}
+              tripChildren={trip.children}
+              hotels={catalog.hotels}
+              onAddItem={addHotelBooking}
               onUpdateItem={updateItem}
               onRemoveItem={removeItem}
             />

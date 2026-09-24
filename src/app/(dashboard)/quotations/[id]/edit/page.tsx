@@ -42,6 +42,7 @@ export default async function EditQuotationPage({ params }: { params: Promise<{ 
         trip={{
           travelTo: enquiry.travelTo,
           travelDate: formatDate(enquiry.travelDate),
+          travelDateIso: toDateInputValue(enquiry.travelDate),
           durationDays: enquiry.durationDays,
           adults: enquiry.adults,
           children: enquiry.children,
@@ -60,6 +61,7 @@ export default async function EditQuotationPage({ params }: { params: Promise<{ 
             description: item.description,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
+            details: item.details ?? undefined,
           })),
         }}
         catalog={{
@@ -67,6 +69,8 @@ export default async function EditQuotationPage({ params }: { params: Promise<{ 
             id: h.id,
             name: h.name,
             destination: h.destination,
+            address: h.address,
+            currency: h.currency,
             pricePerNight: h.pricePerNight ?? 0,
           })),
           transport: buildTransportCatalog(transport, enquiry.durationDays),

@@ -392,6 +392,7 @@ model QuotationItem {
   quantity    Int                   @default(1)
   unitPrice   Int
   sortOrder   Int                   @default(0)
+  details     Json?
 
   @@index([quotationId])
 }

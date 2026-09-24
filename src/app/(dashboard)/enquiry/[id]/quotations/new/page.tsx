@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { requireModuleAccess } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { QuotationForm } from "@/components/quotation/quotation-form";
-import { formatEnquiryNumber, formatDate } from "@/lib/enquiry";
+import { formatEnquiryNumber, formatDate, toDateInputValue } from "@/lib/enquiry";
 import { findRateForDate } from "@/lib/sightseeing";
 import { buildTransportCatalog } from "@/lib/transport";
 
@@ -37,6 +37,7 @@ export default async function NewQuotationPage({ params }: { params: Promise<{ i
         trip={{
           travelTo: enquiry.travelTo,
           travelDate: formatDate(enquiry.travelDate),
+          travelDateIso: toDateInputValue(enquiry.travelDate),
           durationDays: enquiry.durationDays,
           adults: enquiry.adults,
           children: enquiry.children,
@@ -50,6 +51,8 @@ export default async function NewQuotationPage({ params }: { params: Promise<{ i
             id: h.id,
             name: h.name,
             destination: h.destination,
+            address: h.address,
+            currency: h.currency,
             pricePerNight: h.pricePerNight ?? 0,
           })),
           transport: buildTransportCatalog(transport, enquiry.durationDays),

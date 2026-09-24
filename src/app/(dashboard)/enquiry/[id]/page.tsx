@@ -164,7 +164,12 @@ export default async function EnquiryDetailPage({ params }: { params: Promise<{ 
           ) : (
             <div className="flex flex-col divide-y divide-border">
               {enquiry.quotations.map((quotation) => {
-                const totals = computeQuotationTotals(quotation.items, quotation.discount, quotation.taxPercent);
+                const totals = computeQuotationTotals(
+                  quotation.items,
+                  quotation.markupPercent,
+                  quotation.discount,
+                  quotation.taxPercent,
+                );
                 return (
                   <Link
                     key={quotation.id}

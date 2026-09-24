@@ -40,6 +40,8 @@ enum QuotationItemCategory {
   HOTEL
   SIGHTSEEING
   TRANSPORT
+  EXPENSE
+  GUIDE
   OTHER
 }
 
@@ -254,6 +256,7 @@ model Quotation {
   title              String
   currency           String
   validUntil         DateTime?
+  markupPercent      Int     @default(0)
   discount           Int     @default(0)
   taxPercent         Int     @default(0)
   termsAndConditions String?

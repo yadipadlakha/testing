@@ -28,7 +28,12 @@ export default async function QuotationViewPage({ params }: { params: Promise<{ 
   if (!quotation) notFound();
   if (session.user.role !== "ADMIN" && quotation.enquiry.allocatedToId !== session.user.id) notFound();
 
-  const totals = computeQuotationTotals(quotation.items, quotation.discount, quotation.taxPercent);
+  const totals = computeQuotationTotals(
+    quotation.items,
+    quotation.markupPercent,
+    quotation.discount,
+    quotation.taxPercent,
+  );
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
@@ -118,10 +123,16 @@ export default async function QuotationViewPage({ params }: { params: Promise<{ 
               <span>Subtotal</span>
               <span>{formatCurrency(totals.subtotal, quotation.currency)}</span>
             </div>
+            {quotation.markupPercent > 0 ? (
+              <div className="flex justify-between text-muted-foreground">
+                <span>Markup ({quotation.markupPercent}%)</span>
+                <span>+{formatCurrency(totals.markup, quotation.currency)}</span>
+              </div>
+            ) : null}
             {quotation.discount > 0 ? (
               <div className="flex justify-between text-muted-foreground">
                 <span>Discount</span>
-                <span>-{formatCurrency(totals.subtotal - totals.afterDiscount, quotation.currency)}</span>
+                <span>-{formatCurrency(totals.afterMarkup - totals.afterDiscount, quotation.currency)}</span>
               </div>
             ) : null}
             {quotation.taxPercent > 0 ? (

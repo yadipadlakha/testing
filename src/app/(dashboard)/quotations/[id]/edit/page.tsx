@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import { requireModuleAccess } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { QuotationForm } from "@/components/quotation/quotation-form";
-import { toDateInputValue, formatEnquiryNumber } from "@/lib/enquiry";
+import { toDateInputValue, formatEnquiryNumber, formatDate } from "@/lib/enquiry";
+import { findRateForDate } from "@/lib/sightseeing";
 
 export default async function EditQuotationPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireModuleAccess("ENQUIRY");
@@ -17,25 +18,35 @@ export default async function EditQuotationPage({ params }: { params: Promise<{ 
 
   const [hotels, sightseeing, transport] = await Promise.all([
     prisma.hotel.findMany({ orderBy: { name: "asc" } }),
-    prisma.sightseeing.findMany({ orderBy: { name: "asc" } }),
+    prisma.sightseeing.findMany({ include: { rates: true }, orderBy: { name: "asc" } }),
     prisma.transport.findMany({ orderBy: { vehicleType: "asc" } }),
   ]);
 
+  const enquiry = quotation.enquiry;
+
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6">
+    <div className="mx-auto flex max-w-5xl flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold text-foreground">Edit Quotation</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          For {formatEnquiryNumber(quotation.enquiry.enquiryNumber)} — {quotation.enquiry.client.name}
+          For {formatEnquiryNumber(enquiry.enquiryNumber)} — {enquiry.client.name}
         </p>
       </div>
       <QuotationForm
         mode="edit"
         quotationId={quotation.id}
+        trip={{
+          travelTo: enquiry.travelTo,
+          travelDate: formatDate(enquiry.travelDate),
+          durationDays: enquiry.durationDays,
+          adults: enquiry.adults,
+          children: enquiry.children,
+        }}
         defaultValues={{
           title: quotation.title,
           currency: quotation.currency,
           validUntil: toDateInputValue(quotation.validUntil),
+          markupPercent: quotation.markupPercent,
           discount: quotation.discount,
           taxPercent: quotation.taxPercent,
           termsAndConditions: quotation.termsAndConditions ?? "",
@@ -50,19 +61,27 @@ export default async function EditQuotationPage({ params }: { params: Promise<{ 
         catalog={{
           hotels: hotels.map((h) => ({
             id: h.id,
-            label: `${h.name} (${h.destination})`,
-            unitPrice: h.pricePerNight ?? 0,
-          })),
-          sightseeing: sightseeing.map((s) => ({
-            id: s.id,
-            label: `${s.name} (${s.city})`,
-            unitPrice: s.price ?? 0,
+            name: h.name,
+            destination: h.destination,
+            pricePerNight: h.pricePerNight ?? 0,
           })),
           transport: transport.map((t) => ({
             id: t.id,
-            label: `${t.vehicleType} (${t.destination})`,
-            unitPrice: t.pricePerDay ?? 0,
+            vehicleType: t.vehicleType,
+            destination: t.destination,
+            pricePerDay: t.pricePerDay ?? 0,
           })),
+          sightseeing: sightseeing.map((s) => {
+            const rate = findRateForDate(s.rates, enquiry.travelDate);
+            return {
+              id: s.id,
+              name: s.name,
+              city: s.city,
+              adultRate: rate?.adultRate ?? null,
+              childRate: rate?.childRate ?? null,
+              flatPrice: s.price ?? null,
+            };
+          }),
         }}
       />
     </div>

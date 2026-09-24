@@ -8,7 +8,7 @@ import { requireModuleAccess } from "@/lib/permissions";
 import type { ActionState } from "@/lib/actions/auth-actions";
 
 const itemSchema = z.object({
-  category: z.enum(["HOTEL", "SIGHTSEEING", "TRANSPORT", "OTHER"]),
+  category: z.enum(["HOTEL", "SIGHTSEEING", "TRANSPORT", "EXPENSE", "GUIDE", "OTHER"]),
   description: z.string().min(1),
   quantity: z.coerce.number().int().min(1),
   unitPrice: z.coerce.number().int().min(0),
@@ -18,6 +18,7 @@ const quotationSchema = z.object({
   title: z.string().min(1, "Title is required"),
   currency: z.string().min(1, "Currency is required"),
   validUntil: z.string().optional(),
+  markupPercent: z.coerce.number().int().min(0).max(1000).default(0),
   discount: z.coerce.number().int().min(0).default(0),
   taxPercent: z.coerce.number().int().min(0).max(100).default(0),
   termsAndConditions: z.string().optional(),
@@ -60,6 +61,7 @@ export async function createQuotation(
       title: parsed.data.title,
       currency: parsed.data.currency,
       validUntil: parsed.data.validUntil ? new Date(parsed.data.validUntil) : undefined,
+      markupPercent: parsed.data.markupPercent,
       discount: parsed.data.discount,
       taxPercent: parsed.data.taxPercent,
       termsAndConditions: parsed.data.termsAndConditions || undefined,
@@ -107,6 +109,7 @@ export async function updateQuotation(
         title: parsed.data.title,
         currency: parsed.data.currency,
         validUntil: parsed.data.validUntil ? new Date(parsed.data.validUntil) : null,
+        markupPercent: parsed.data.markupPercent,
         discount: parsed.data.discount,
         taxPercent: parsed.data.taxPercent,
         termsAndConditions: parsed.data.termsAndConditions || null,

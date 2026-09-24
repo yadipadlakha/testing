@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { QuotationForm } from "@/components/quotation/quotation-form";
 import { formatEnquiryNumber, formatDate } from "@/lib/enquiry";
 import { findRateForDate } from "@/lib/sightseeing";
+import { buildTransportCatalog } from "@/lib/transport";
 
 export default async function NewQuotationPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireModuleAccess("ENQUIRY");
@@ -16,7 +17,10 @@ export default async function NewQuotationPage({ params }: { params: Promise<{ i
   const [hotels, sightseeing, transport] = await Promise.all([
     prisma.hotel.findMany({ orderBy: { name: "asc" } }),
     prisma.sightseeing.findMany({ include: { rates: true }, orderBy: { name: "asc" } }),
-    prisma.transport.findMany({ orderBy: { vehicleType: "asc" } }),
+    prisma.transport.findMany({
+      include: { routePricing: { include: { route: true } } },
+      orderBy: { title: "asc" },
+    }),
   ]);
 
   return (
@@ -48,12 +52,7 @@ export default async function NewQuotationPage({ params }: { params: Promise<{ i
             destination: h.destination,
             pricePerNight: h.pricePerNight ?? 0,
           })),
-          transport: transport.map((t) => ({
-            id: t.id,
-            vehicleType: t.vehicleType,
-            destination: t.destination,
-            pricePerDay: t.pricePerDay ?? 0,
-          })),
+          transport: buildTransportCatalog(transport, enquiry.durationDays),
           sightseeing: sightseeing.map((s) => {
             const rate = findRateForDate(s.rates, enquiry.travelDate);
             return {

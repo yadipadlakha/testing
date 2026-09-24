@@ -232,31 +232,107 @@ async function main() {
 
   const existingVehicles = await prisma.transport.count();
   if (existingVehicles === 0) {
-    await prisma.transport.createMany({
-      data: [
-        {
-          vehicleType: "Sedan",
-          destination: "Sri Lanka",
-          capacity: 4,
-          pricePerDay: 4500,
-          contactPerson: "Sunil Perera",
-          contactPhone: "+94 77 123 4567",
-          createdById: admin.id,
-        },
-        {
-          vehicleType: "Tempo Traveller",
-          destination: "Japan",
-          capacity: 12,
-          pricePerDay: 15000,
-          contactPerson: "Hiroshi Tanaka",
-          contactPhone: "+81 90 1234 5678",
-          createdById: admin.id,
-        },
-      ],
+    const sedan = await prisma.transport.create({
+      data: {
+        vehicleType: "Sedan",
+        subType: "Toyota Camry",
+        acType: "AC",
+        seats: 4,
+        vehicleNumber: "WP-CAB-2451",
+        tripTypes: ["OUTSTATION", "AIRPORT"],
+        title: "AC Sedan — Sigiriya Transfers",
+        location: "Colombo, Sri Lanka",
+        packagesStarting: "Half Day / Full Day / Outstation",
+        pricePerKm: 65,
+        pricePerHour: 450,
+        recommendedDriver: "Sunil Perera",
+        amenities: ["Wifi", "Charging Point", "Water Bottle"],
+        createdById: admin.id,
+      },
     });
-    console.log("Created 2 sample transport vendors.");
+
+    const tempoTraveller = await prisma.transport.create({
+      data: {
+        vehicleType: "Tempo Traveller",
+        subType: "Force Traveller 12-Seater",
+        acType: "AC",
+        seats: 12,
+        vehicleNumber: "JP-TRV-8827",
+        tripTypes: ["OUTSTATION", "LOCAL"],
+        title: "AC Tempo Traveller — Fuji Group Tours",
+        location: "Tokyo, Japan",
+        packagesStarting: "Full Day / Outstation",
+        pricePerKm: 120,
+        pricePerHour: 900,
+        recommendedDriver: "Hiroshi Tanaka",
+        amenities: ["Wifi", "Music", "Charging Point", "Reading Light", "Blanket"],
+        createdById: admin.id,
+      },
+    });
+
+    console.log("Created 2 sample vehicles.");
+
+    const existingRoutes = await prisma.transportRoute.count();
+    if (existingRoutes === 0) {
+      const sigiriyaActivity = await prisma.sightseeing.findFirst({ where: { name: "Sigiriya Rock Fortress Tour" } });
+      const fujiActivity = await prisma.sightseeing.findFirst({ where: { name: "Mount Fuji & Hakone Day Trip" } });
+
+      const sigiriyaRoute = await prisma.transportRoute.create({
+        data: {
+          name: "Colombo to Sigiriya",
+          destinations: ["Colombo", "Dambulla", "Sigiriya"],
+          itineraryText: "Depart Colombo early morning, drive via Dambulla, arrive Sigiriya for the rock fortress tour, return evening.",
+          actualDistanceKm: 170,
+          displayDistanceKm: 170,
+          itineraryDurationHours: 10,
+          activities: sigiriyaActivity ? { connect: { id: sigiriyaActivity.id } } : undefined,
+          createdById: admin.id,
+        },
+      });
+
+      const fujiRoute = await prisma.transportRoute.create({
+        data: {
+          name: "Tokyo to Mount Fuji",
+          destinations: ["Tokyo", "Hakone", "Mount Fuji"],
+          itineraryText: "Depart Tokyo, drive to Mount Fuji 5th station, continue to Lake Ashi in Hakone, return via Tokyo expressway.",
+          actualDistanceKm: 210,
+          displayDistanceKm: 210,
+          itineraryDurationHours: 12,
+          activities: fujiActivity ? { connect: { id: fujiActivity.id } } : undefined,
+          createdById: admin.id,
+        },
+      });
+
+      console.log("Created 2 sample transport routes.");
+
+      await prisma.transportRoutePricing.createMany({
+        data: [
+          {
+            transportId: sedan.id,
+            routeId: sigiriyaRoute.id,
+            pricePerKm: 65,
+            nightCharge: 500,
+            tollTax: 300,
+            driverAllowance: 1000,
+            totalPrice: 12850,
+          },
+          {
+            transportId: tempoTraveller.id,
+            routeId: fujiRoute.id,
+            pricePerKm: 120,
+            nightCharge: 800,
+            tollTax: 1200,
+            driverAllowance: 1500,
+            totalPrice: 28700,
+          },
+        ],
+      });
+      console.log("Created 2 sample route pricing entries.");
+    } else {
+      console.log(`Sample transport routes already exist (${existingRoutes}), skipping.`);
+    }
   } else {
-    console.log(`Sample transport vendors already exist (${existingVehicles}), skipping.`);
+    console.log(`Sample vehicles already exist (${existingVehicles}), skipping.`);
   }
 }
 

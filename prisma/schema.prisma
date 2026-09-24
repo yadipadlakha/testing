@@ -64,10 +64,11 @@ model User {
   allocatedEnquiries Enquiry[] @relation("AllocatedEnquiries")
   createdEnquiries   Enquiry[] @relation("CreatedEnquiries")
 
-  createdHotels      Hotel[]       @relation("CreatedHotels")
-  createdSightseeing Sightseeing[] @relation("CreatedSightseeing")
-  createdTransport   Transport[]   @relation("CreatedTransport")
-  createdQuotations  Quotation[]   @relation("CreatedQuotations")
+  createdHotels          Hotel[]           @relation("CreatedHotels")
+  createdSightseeing     Sightseeing[]     @relation("CreatedSightseeing")
+  createdTransport       Transport[]       @relation("CreatedTransport")
+  createdTransportRoutes TransportRoute[]  @relation("CreatedTransportRoutes")
+  createdQuotations      Quotation[]       @relation("CreatedQuotations")
 
   @@index([createdById])
 }
@@ -181,6 +182,7 @@ model Sightseeing {
 
   activityTypes SightseeingActivityType[]
   rates         SightseeingRate[]
+  routes        TransportRoute[]
 
   createdById String
   createdBy   User   @relation("CreatedSightseeing", fields: [createdById], references: [id])
@@ -228,22 +230,71 @@ model SightseeingRate {
 }
 
 model Transport {
-  id            String  @id @default(cuid())
-  vehicleType   String
-  destination   String
-  capacity      Int?
-  pricePerDay   Int?
-  contactPerson String?
-  contactPhone  String?
-  notes         String?
+  id                String  @id @default(cuid())
+  vehicleType       String
+  subType           String?
+  acType            String  @default("AC")
+  seats             Int?
+  vehicleNumber     String?
+  tripTypes         String[]
+  title             String
+  location          String?
+  packagesStarting  String?
+  pricePerKm        Int?
+  pricePerHour      Int?
+  recommendedDriver String?
+  amenities         String[]
 
   createdById String
   createdBy   User   @relation("CreatedTransport", fields: [createdById], references: [id])
 
+  routePricing TransportRoutePricing[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([destination])
+  @@index([location])
+}
+
+model TransportRoute {
+  id                     String   @id @default(cuid())
+  name                   String
+  destinations           String[]
+  itineraryText          String
+  actualDistanceKm       Int
+  displayDistanceKm      Int?
+  itineraryDurationHours Int
+
+  activities Sightseeing[]
+
+  createdById String
+  createdBy   User   @relation("CreatedTransportRoutes", fields: [createdById], references: [id])
+
+  routePricing TransportRoutePricing[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TransportRoutePricing {
+  id          String @id @default(cuid())
+  transportId String
+  transport   Transport @relation(fields: [transportId], references: [id], onDelete: Cascade)
+  routeId     String
+  route       TransportRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
+
+  pricePerKm      Int?
+  nightCharge     Int?
+  tollTax         Int?
+  driverAllowance Int?
+  totalPrice      Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([transportId, routeId])
+  @@index([transportId])
+  @@index([routeId])
 }
 
 model Quotation {

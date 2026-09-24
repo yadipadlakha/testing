@@ -1,24 +1,30 @@
 import Link from "next/link";
-import { Plus, Pencil, Trash2, MapPin, Users, Phone } from "lucide-react";
+import { Plus, Pencil, Trash2, MapPin, Users, Snowflake } from "lucide-react";
 import { requireModuleAccess } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
-import { deleteTransport } from "@/lib/actions/transport-actions";
+import { deleteVehicle } from "@/lib/actions/transport-actions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { TransportTabs } from "@/components/transport/transport-tabs";
+import { tripTypeLabel } from "@/lib/transport";
 import { formatCurrency } from "@/lib/format";
 
 export default async function TransportListPage() {
   const session = await requireModuleAccess("TRANSPORT");
   const isAdmin = session.user.role === "ADMIN";
 
-  const vehicles = await prisma.transport.findMany({ orderBy: { createdAt: "desc" } });
+  const vehicles = await prisma.transport.findMany({
+    include: { _count: { select: { routePricing: true } } },
+    orderBy: { createdAt: "desc" },
+  });
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Transport</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Catalog of vehicle vendors by destination.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Vehicle fleet and route pricing.</p>
         </div>
         {isAdmin ? (
           <Button asChild>
@@ -29,6 +35,8 @@ export default async function TransportListPage() {
         ) : null}
       </div>
 
+      <TransportTabs active="vehicles" />
+
       {vehicles.length === 0 ? (
         <Card className="items-center justify-center py-16 text-center text-sm text-muted-foreground">
           No vehicles added yet.
@@ -37,26 +45,41 @@ export default async function TransportListPage() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {vehicles.map((vehicle) => (
             <Card key={vehicle.id} className="gap-2 p-4">
-              <p className="text-sm font-semibold text-foreground">{vehicle.vehicleType}</p>
-              <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                <MapPin className="h-3 w-3" /> {vehicle.destination}
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-sm font-semibold text-foreground">{vehicle.title}</p>
+                <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+                  <Snowflake className="h-3 w-3" /> {vehicle.acType}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {vehicle.vehicleType}
+                {vehicle.subType ? ` · ${vehicle.subType}` : ""}
               </p>
-              {vehicle.capacity ? (
+              {vehicle.location ? (
                 <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Users className="h-3 w-3" /> {vehicle.capacity} seats
+                  <MapPin className="h-3 w-3" /> {vehicle.location}
                 </p>
               ) : null}
-              <p className="text-sm font-medium text-foreground">{formatCurrency(vehicle.pricePerDay)} / day</p>
-              {vehicle.contactPerson || vehicle.contactPhone ? (
-                <div className="text-xs text-muted-foreground">
-                  {vehicle.contactPerson ? <p>{vehicle.contactPerson}</p> : null}
-                  {vehicle.contactPhone ? (
-                    <p className="flex items-center gap-1">
-                      <Phone className="h-3 w-3" /> {vehicle.contactPhone}
-                    </p>
-                  ) : null}
-                </div>
+              {vehicle.seats ? (
+                <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Users className="h-3 w-3" /> {vehicle.seats} seats
+                </p>
               ) : null}
+              <div className="flex flex-wrap gap-1">
+                {vehicle.tripTypes.map((t) => (
+                  <Badge key={t} variant="outline">
+                    {tripTypeLabel(t)}
+                  </Badge>
+                ))}
+              </div>
+              <div className="text-sm text-foreground">
+                {vehicle.pricePerKm ? `${formatCurrency(vehicle.pricePerKm)}/km` : ""}
+                {vehicle.pricePerKm && vehicle.pricePerHour ? " · " : ""}
+                {vehicle.pricePerHour ? `${formatCurrency(vehicle.pricePerHour)}/hr` : ""}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {vehicle._count.routePricing} route{vehicle._count.routePricing === 1 ? "" : "s"} priced
+              </p>
 
               {isAdmin ? (
                 <div className="mt-2 flex gap-1.5">
@@ -65,7 +88,7 @@ export default async function TransportListPage() {
                       <Pencil className="h-3.5 w-3.5" /> Edit
                     </Link>
                   </Button>
-                  <form action={deleteTransport.bind(null, vehicle.id)}>
+                  <form action={deleteVehicle.bind(null, vehicle.id)}>
                     <Button variant="destructive" size="sm" type="submit">
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>

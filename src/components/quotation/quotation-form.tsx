@@ -25,7 +25,7 @@ type ItemDraft = {
 };
 
 type HotelCatalogEntry = { id: string; name: string; destination: string; pricePerNight: number };
-type TransportCatalogEntry = { id: string; vehicleType: string; destination: string; pricePerDay: number };
+type TransportCatalogEntry = { id: string; label: string; unitPrice: number; quantity: number };
 type SightseeingCatalogEntry = {
   id: string;
   name: string;
@@ -108,12 +108,7 @@ export function QuotationForm({
   function addTransport(id: string) {
     const entry = catalog.transport.find((t) => t.id === id);
     if (!entry) return;
-    addItem(
-      "TRANSPORT",
-      `${entry.vehicleType} (${entry.destination}) — ${trip.durationDays} day${trip.durationDays > 1 ? "s" : ""}`,
-      trip.durationDays,
-      entry.pricePerDay,
-    );
+    addItem("TRANSPORT", entry.label, entry.quantity, entry.unitPrice);
   }
 
   function addSightseeing(id: string) {
@@ -247,7 +242,7 @@ export function QuotationForm({
             <ServiceSection
               title="Transport"
               addLabel="Add transport"
-              options={catalog.transport.map((t) => ({ id: t.id, label: `${t.vehicleType} (${t.destination})` }))}
+              options={catalog.transport.map((t) => ({ id: t.id, label: t.label }))}
               onAdd={addTransport}
               items={items.filter((i) => i.category === "TRANSPORT")}
               currency={currency}

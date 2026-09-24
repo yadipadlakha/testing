@@ -59,8 +59,25 @@ export function PriceCalendar({
               )}
             >
               <span className="text-xs text-foreground">{date.getDate()}</span>
-              {rate?.adultRate != null ? (
-                <span className="text-[10px] font-semibold text-primary">{formatCurrency(rate.adultRate)}</span>
+              {rate ? (
+                <>
+                  {rate.adultRate != null ? (
+                    <span className="text-[10px] font-semibold text-primary">A {formatCurrency(rate.adultRate)}</span>
+                  ) : null}
+                  {rate.childRate != null ? (
+                    <span className="text-[10px] font-semibold text-sky-600 dark:text-sky-400">
+                      C {formatCurrency(rate.childRate)}
+                    </span>
+                  ) : null}
+                  {rate.infantRate != null ? (
+                    <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                      I {formatCurrency(rate.infantRate)}
+                    </span>
+                  ) : null}
+                  {rate.adultRate == null && rate.childRate == null && rate.infantRate == null ? (
+                    <span className="text-[10px] text-muted-foreground">—</span>
+                  ) : null}
+                </>
               ) : (
                 <span className="text-[10px] text-muted-foreground">—</span>
               )}

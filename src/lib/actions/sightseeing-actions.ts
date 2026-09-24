@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/permissions";
 import type { ActionState } from "@/lib/actions/auth-actions";
+import { parseSpreadsheet, splitList, summarizeBulkUpload, type BulkUploadResult } from "@/lib/bulk-upload";
 
 const emptyToUndefined = (val: unknown) => (val === "" ? undefined : val);
 
@@ -194,4 +195,113 @@ export async function deleteSightseeingRate(sightseeingId: string, rateId: strin
   await requireAdmin();
   await prisma.sightseeingRate.delete({ where: { id: rateId } });
   revalidatePath(`/sightseeing/${sightseeingId}/edit`);
+}
+
+const bulkSightseeingRowSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1, "Activity name is required"),
+  country: z.string().min(1, "Country is required"),
+  city: z.string().min(1, "City is required"),
+  starRating: z.preprocess(emptyToUndefined, z.coerce.number().min(0).max(5).optional()),
+  duration: z.string().optional(),
+  address: z.string().optional(),
+  latitude: z.preprocess(emptyToUndefined, z.coerce.number().min(-90).max(90).optional()),
+  longitude: z.preprocess(emptyToUndefined, z.coerce.number().min(-180).max(180).optional()),
+  contactPhone: z.string().optional(),
+  tourSummary: z.string().optional(),
+  price: z.preprocess(emptyToUndefined, z.coerce.number().int().min(0).optional()),
+  activityTypes: z.string().optional(),
+});
+
+async function resolveActivityTypeIds(names: string[]): Promise<string[]> {
+  const ids: string[] = [];
+  for (const name of names) {
+    const type = await prisma.sightseeingActivityType.upsert({
+      where: { name },
+      update: {},
+      create: { name },
+    });
+    ids.push(type.id);
+  }
+  return ids;
+}
+
+export async function bulkUploadSightseeing(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await requireAdmin();
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) return { error: "Choose a CSV or Excel file to upload." };
+
+  let rows: Record<string, string>[];
+  try {
+    rows = parseSpreadsheet(await file.arrayBuffer());
+  } catch {
+    return { error: "Could not read that file. Make sure it's a valid .csv or .xlsx file." };
+  }
+
+  const result: BulkUploadResult = { created: 0, updated: 0, skipped: [] };
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const rowNum = i + 2;
+    const parsed = bulkSightseeingRowSchema.safeParse({
+      id: row["ID"],
+      name: row["Name"],
+      country: row["Country"],
+      city: row["City"],
+      starRating: row["Star Rating"],
+      duration: row["Duration"],
+      address: row["Address"],
+      latitude: row["Latitude"],
+      longitude: row["Longitude"],
+      contactPhone: row["Contact Phone"],
+      tourSummary: row["Tour Summary"],
+      price: row["Price"],
+      activityTypes: row["Activity Types"],
+    });
+    if (!parsed.success) {
+      result.skipped.push(`Row ${rowNum}: ${parsed.error.issues[0]?.message ?? "invalid data"}`);
+      continue;
+    }
+    const data = parsed.data;
+
+    try {
+      const activityTypeIds = await resolveActivityTypeIds(splitList(data.activityTypes));
+      const values = {
+        name: data.name,
+        country: data.country,
+        city: data.city,
+        starRating: data.starRating,
+        duration: data.duration || undefined,
+        address: data.address || undefined,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        contactPhone: data.contactPhone || undefined,
+        tourSummary: data.tourSummary || undefined,
+        price: data.price,
+      };
+
+      if (data.id) {
+        await prisma.sightseeing.update({
+          where: { id: data.id },
+          data: { ...values, activityTypes: { set: activityTypeIds.map((id) => ({ id })) } },
+        });
+        result.updated++;
+      } else {
+        await prisma.sightseeing.create({
+          data: {
+            ...values,
+            activityTypes: { connect: activityTypeIds.map((id) => ({ id })) },
+            createdById: session.user.id,
+          },
+        });
+        result.created++;
+      }
+    } catch {
+      result.skipped.push(`Row ${rowNum}: could not save (check the ID exists if updating)`);
+    }
+  }
+
+  revalidatePath("/sightseeing");
+  return summarizeBulkUpload(result);
 }

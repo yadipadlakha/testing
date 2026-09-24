@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Pencil, Trash2, MapPin, Users, Snowflake } from "lucide-react";
+import { Plus, Upload, Pencil, Trash2, MapPin, Users, Snowflake } from "lucide-react";
 import { requireModuleAccess } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { deleteVehicle } from "@/lib/actions/transport-actions";
@@ -27,11 +27,18 @@ export default async function TransportListPage() {
           <p className="mt-1 text-sm text-muted-foreground">Vehicle fleet and route pricing.</p>
         </div>
         {isAdmin ? (
-          <Button asChild>
-            <Link href="/transport/new">
-              <Plus className="h-4 w-4" /> Add Vehicle
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button asChild variant="outline">
+              <Link href="/transport/bulk-upload">
+                <Upload className="h-4 w-4" /> Bulk Upload
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link href="/transport/new">
+                <Plus className="h-4 w-4" /> Add Vehicle
+              </Link>
+            </Button>
+          </div>
         ) : null}
       </div>
 

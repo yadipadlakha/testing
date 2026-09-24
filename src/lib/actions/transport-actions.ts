@@ -6,6 +6,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/permissions";
 import type { ActionState } from "@/lib/actions/auth-actions";
+import { parseSpreadsheet, splitList, summarizeBulkUpload, type BulkUploadResult } from "@/lib/bulk-upload";
+import { TRIP_TYPES } from "@/lib/transport";
 
 const emptyToUndefined = (val: unknown) => (val === "" ? undefined : val);
 
@@ -217,4 +219,103 @@ export async function deleteRoutePricing(transportId: string, routePricingId: st
   await requireAdmin();
   await prisma.transportRoutePricing.delete({ where: { id: routePricingId } });
   revalidatePath(`/transport/${transportId}/edit`);
+}
+
+const bulkVehicleRowSchema = z.object({
+  id: z.string().optional(),
+  vehicleType: z.string().min(1, "Vehicle type is required"),
+  subType: z.string().optional(),
+  acType: z.string().optional(),
+  seats: z.preprocess(emptyToUndefined, z.coerce.number().int().min(1).optional()),
+  vehicleNumber: z.string().optional(),
+  tripTypes: z.string().optional(),
+  title: z.string().min(1, "Title is required"),
+  location: z.string().optional(),
+  packagesStarting: z.string().optional(),
+  pricePerKm: z.preprocess(emptyToUndefined, z.coerce.number().int().min(0).optional()),
+  pricePerHour: z.preprocess(emptyToUndefined, z.coerce.number().int().min(0).optional()),
+  recommendedDriver: z.string().optional(),
+  amenities: z.string().optional(),
+});
+
+function normalizeTripTypes(value: string | undefined): string[] {
+  return splitList(value).map((entry) => {
+    const match = TRIP_TYPES.find(
+      (t) => t.value.toLowerCase() === entry.toLowerCase() || t.label.toLowerCase() === entry.toLowerCase(),
+    );
+    return match ? match.value : entry.toUpperCase();
+  });
+}
+
+export async function bulkUploadVehicles(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await requireAdmin();
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) return { error: "Choose a CSV or Excel file to upload." };
+
+  let rows: Record<string, string>[];
+  try {
+    rows = parseSpreadsheet(await file.arrayBuffer());
+  } catch {
+    return { error: "Could not read that file. Make sure it's a valid .csv or .xlsx file." };
+  }
+
+  const result: BulkUploadResult = { created: 0, updated: 0, skipped: [] };
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const rowNum = i + 2;
+    const parsed = bulkVehicleRowSchema.safeParse({
+      id: row["ID"],
+      vehicleType: row["Vehicle Type"],
+      subType: row["Sub Type"],
+      acType: row["AC/NONAC"],
+      seats: row["Seats"],
+      vehicleNumber: row["Vehicle Number"],
+      tripTypes: row["Trip Types"],
+      title: row["Title"],
+      location: row["Location"],
+      packagesStarting: row["Packages Starting"],
+      pricePerKm: row["Price Per KM"],
+      pricePerHour: row["Price Per Hour"],
+      recommendedDriver: row["Recommended Driver"],
+      amenities: row["Amenities"],
+    });
+    if (!parsed.success) {
+      result.skipped.push(`Row ${rowNum}: ${parsed.error.issues[0]?.message ?? "invalid data"}`);
+      continue;
+    }
+    const data = parsed.data;
+
+    const values = {
+      vehicleType: data.vehicleType,
+      subType: data.subType || undefined,
+      acType: data.acType?.toUpperCase() === "NONAC" ? "NONAC" : "AC",
+      seats: data.seats,
+      vehicleNumber: data.vehicleNumber || undefined,
+      tripTypes: normalizeTripTypes(data.tripTypes),
+      title: data.title,
+      location: data.location || undefined,
+      packagesStarting: data.packagesStarting || undefined,
+      pricePerKm: data.pricePerKm,
+      pricePerHour: data.pricePerHour,
+      recommendedDriver: data.recommendedDriver || undefined,
+      amenities: splitList(data.amenities),
+    };
+
+    try {
+      if (data.id) {
+        await prisma.transport.update({ where: { id: data.id }, data: values });
+        result.updated++;
+      } else {
+        await prisma.transport.create({ data: { ...values, createdById: session.user.id } });
+        result.created++;
+      }
+    } catch {
+      result.skipped.push(`Row ${rowNum}: could not save (check the ID exists if updating)`);
+    }
+  }
+
+  revalidatePath("/transport");
+  return summarizeBulkUpload(result);
 }

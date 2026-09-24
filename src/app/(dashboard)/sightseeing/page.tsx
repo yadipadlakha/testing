@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Pencil, Trash2, MapPin, Clock, Star } from "lucide-react";
+import { Plus, Upload, Pencil, Trash2, MapPin, Clock, Star } from "lucide-react";
 import { requireModuleAccess } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { deleteSightseeing } from "@/lib/actions/sightseeing-actions";
@@ -25,11 +25,18 @@ export default async function SightseeingListPage() {
           <p className="mt-1 text-sm text-muted-foreground">Catalog of activities and excursions by destination.</p>
         </div>
         {isAdmin ? (
-          <Button asChild>
-            <Link href="/sightseeing/new">
-              <Plus className="h-4 w-4" /> Add Activity
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button asChild variant="outline">
+              <Link href="/sightseeing/bulk-upload">
+                <Upload className="h-4 w-4" /> Bulk Upload
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link href="/sightseeing/new">
+                <Plus className="h-4 w-4" /> Add Activity
+              </Link>
+            </Button>
+          </div>
         ) : null}
       </div>
 

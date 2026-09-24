@@ -25,6 +25,8 @@ import {
   type HotelBookingStatus,
 } from "@/lib/hotel-booking";
 
+const NO_SPINNER = "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+
 const WEEKDAY_NAMES = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -94,7 +96,13 @@ export function HotelBookingEditor({
 }) {
   const [step, setStep] = useState<"details" | "room">("details");
   const [draft, setDraft] = useState<HotelBookingDetails>(
-    () => initial ?? { ...emptyDraft("INR"), totalPax: tripAdults + tripChildren || 1 },
+    () =>
+      initial ?? {
+        ...emptyDraft("INR"),
+        totalPax: tripAdults + tripChildren || 1,
+        checkIn: travelDateIso,
+        checkOut: addDays(travelDateIso, durationDays),
+      },
   );
   const [alternateEnabled, setAlternateEnabled] = useState(Boolean(initial?.alternateHotelId));
   const [bookingOpen, setBookingOpen] = useState(false);
@@ -131,8 +139,8 @@ export function HotelBookingEditor({
       roomCategory: "",
       roomType: "",
       mealPlan: "",
-      checkIn: "",
-      checkOut: "",
+      checkIn: travelDateIso,
+      checkOut: addDays(travelDateIso, durationDays),
     });
   }
 
@@ -206,6 +214,9 @@ export function HotelBookingEditor({
       : nightDates.map(() => draft.manualNightlyPrice ?? 0);
   const hasMissingRate = draft.rateMode === "INVENTORY" && nightDates.some((d) => tilePrice(d) == null);
   const totals = computeHotelBookingTotals(draft, nightlyPrices);
+  const canSave =
+    nights > 0 &&
+    (draft.rateMode === "MANUAL" || Boolean(draft.roomCategory && draft.roomType && draft.mealPlan));
 
   function handleSave() {
     const finalDraft: HotelBookingDetails = {
@@ -577,6 +588,7 @@ export function HotelBookingEditor({
                     min={0}
                     value={draft.manualNightlyPrice ?? ""}
                     onChange={(e) => patch({ manualNightlyPrice: Number(e.target.value) || 0 })}
+                    className={NO_SPINNER}
                   />
                 </div>
               </div>
@@ -660,7 +672,7 @@ export function HotelBookingEditor({
                     min={0}
                     value={draft.additionalChargesAmount}
                     onChange={(e) => patch({ additionalChargesAmount: Number(e.target.value) || 0 })}
-                    className="h-8 w-28"
+                    className={cn("h-8 w-28", NO_SPINNER)}
                   />
                 </div>
                 <div className="flex items-center justify-between border-t border-border pt-2 text-base font-semibold text-foreground">
@@ -678,7 +690,7 @@ export function HotelBookingEditor({
                 <Button type="button" variant="outline" onClick={onCancel}>
                   Close
                 </Button>
-                <Button type="button" disabled={nights === 0} onClick={handleSave}>
+                <Button type="button" disabled={!canSave} onClick={handleSave}>
                   Save changes
                 </Button>
               </div>
@@ -712,7 +724,13 @@ function ExtraField({
         <Input type="number" min={0} value={qty} onChange={(e) => onQty(Number(e.target.value) || 0)} className="w-16" />
         <div className="flex flex-1 items-center gap-1">
           <span className="text-xs text-muted-foreground">{currency}</span>
-          <Input type="number" min={0} value={price} onChange={(e) => onPrice(Number(e.target.value) || 0)} />
+          <Input
+            type="number"
+            min={0}
+            value={price}
+            onChange={(e) => onPrice(Number(e.target.value) || 0)}
+            className={NO_SPINNER}
+          />
         </div>
       </div>
     </div>

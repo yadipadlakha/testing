@@ -35,6 +35,8 @@ export default async function EditEnquiryPage({ params }: { params: Promise<{ id
           clientPhone: enquiry.client.phone,
           clientEmail: enquiry.client.email ?? "",
           companyName: enquiry.client.companyName ?? "",
+          clientCity: enquiry.client.city ?? "",
+          clientState: enquiry.client.state ?? "",
           type: enquiry.type,
           travelTo: enquiry.travelTo,
           travelDate: toDateInputValue(enquiry.travelDate),

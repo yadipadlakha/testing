@@ -135,34 +135,97 @@ async function main() {
     console.log(`Sample hotels already exist (${existingHotels}), skipping.`);
   }
 
+  const existingActivityTypes = await prisma.sightseeingActivityType.count();
+  if (existingActivityTypes === 0) {
+    await prisma.sightseeingActivityType.createMany({
+      data: [{ name: "Cultural Tour" }, { name: "Cruise" }, { name: "Adventure" }, { name: "Early Entry Pass" }],
+    });
+    console.log("Created 4 sample activity types.");
+  } else {
+    console.log(`Sample activity types already exist (${existingActivityTypes}), skipping.`);
+  }
+
   const existingActivities = await prisma.sightseeing.count();
   if (existingActivities === 0) {
-    await prisma.sightseeing.createMany({
-      data: [
-        {
-          name: "Sigiriya Rock Fortress Tour",
-          destination: "Sri Lanka",
-          duration: "Full Day",
-          price: 3500,
-          createdById: admin.id,
-        },
-        {
-          name: "Mount Fuji & Hakone Day Trip",
-          destination: "Japan",
-          duration: "Full Day",
-          price: 6200,
-          createdById: admin.id,
-        },
-        {
-          name: "Sunset Dolphin Cruise",
-          destination: "Maldives",
-          duration: "Half Day",
-          price: 2800,
-          createdById: admin.id,
-        },
-      ],
+    const culturalType = await prisma.sightseeingActivityType.findUnique({ where: { name: "Cultural Tour" } });
+    const cruiseType = await prisma.sightseeingActivityType.findUnique({ where: { name: "Cruise" } });
+
+    const sigiriya = await prisma.sightseeing.create({
+      data: {
+        name: "Sigiriya Rock Fortress Tour",
+        country: "Sri Lanka",
+        city: "Dambulla",
+        starRating: 4.5,
+        duration: "Full Day",
+        price: 3500,
+        contactPhone: "+94 81 249 8000",
+        tourSummary: "Guided full-day tour of the ancient Sigiriya rock fortress, a UNESCO World Heritage Site.",
+        activityTypes: culturalType ? { connect: { id: culturalType.id } } : undefined,
+        createdById: admin.id,
+      },
     });
-    console.log("Created 3 sample sightseeing activities.");
+
+    const fuji = await prisma.sightseeing.create({
+      data: {
+        name: "Mount Fuji & Hakone Day Trip",
+        country: "Japan",
+        city: "Hakone",
+        starRating: 4.8,
+        duration: "Full Day",
+        price: 6200,
+        tourSummary: "Scenic day trip to Mount Fuji's 5th station and Lake Ashi with a cable car ride.",
+        activityTypes: culturalType ? { connect: { id: culturalType.id } } : undefined,
+        createdById: admin.id,
+      },
+    });
+
+    await prisma.sightseeing.create({
+      data: {
+        name: "Sunset Dolphin Cruise",
+        country: "Maldives",
+        city: "Male",
+        starRating: 4.2,
+        duration: "Half Day",
+        price: 2800,
+        tourSummary: "Evening cruise to spot spinner dolphins with refreshments on board.",
+        activityTypes: cruiseType ? { connect: { id: cruiseType.id } } : undefined,
+        createdById: admin.id,
+      },
+    });
+
+    const now = Date.now();
+    const day = 24 * 60 * 60 * 1000;
+    await prisma.sightseeingRate.create({
+      data: {
+        sightseeingId: sigiriya.id,
+        title: "Standard season",
+        startDate: new Date(now - 30 * day),
+        endDate: new Date(now + 180 * day),
+        daysOfWeek: ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"],
+        adultRate: 3500,
+        minAdult: 1,
+        childRate: 1800,
+        minChild: 0,
+        maxChild: 4,
+        infantRate: 0,
+        cancelPolicy: "Free cancellation up to 24 hours before the activity.",
+      },
+    });
+    await prisma.sightseeingRate.create({
+      data: {
+        sightseeingId: fuji.id,
+        title: "Peak season",
+        startDate: new Date(now - 30 * day),
+        endDate: new Date(now + 180 * day),
+        daysOfWeek: ["SAT", "SUN"],
+        adultRate: 7500,
+        childRate: 4200,
+        infantRate: 0,
+        cancelPolicy: "Non-refundable within 48 hours of the activity.",
+      },
+    });
+
+    console.log("Created 3 sample sightseeing activities with rate bands.");
   } else {
     console.log(`Sample sightseeing activities already exist (${existingActivities}), skipping.`);
   }

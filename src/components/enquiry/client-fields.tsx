@@ -10,17 +10,28 @@ type ClientSuggestion = {
   phone: string;
   email: string | null;
   companyName: string | null;
+  city: string | null;
+  state: string | null;
 };
 
 export function ClientFields({
   defaultValues,
 }: {
-  defaultValues?: { clientName?: string; clientPhone?: string; clientEmail?: string; companyName?: string };
+  defaultValues?: {
+    clientName?: string;
+    clientPhone?: string;
+    clientEmail?: string;
+    companyName?: string;
+    clientCity?: string;
+    clientState?: string;
+  };
 }) {
   const [name, setName] = useState(defaultValues?.clientName ?? "");
   const [phone, setPhone] = useState(defaultValues?.clientPhone ?? "");
   const [email, setEmail] = useState(defaultValues?.clientEmail ?? "");
   const [company, setCompany] = useState(defaultValues?.companyName ?? "");
+  const [city, setCity] = useState(defaultValues?.clientCity ?? "");
+  const [state, setState] = useState(defaultValues?.clientState ?? "");
   const [suggestions, setSuggestions] = useState<ClientSuggestion[]>([]);
   const [activeField, setActiveField] = useState<"name" | "company" | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -59,6 +70,8 @@ export function ClientFields({
     setPhone(client.phone);
     setEmail(client.email ?? "");
     setCompany(client.companyName ?? "");
+    setCity(client.city ?? "");
+    setState(client.state ?? "");
     setActiveField(null);
   }
 
@@ -106,6 +119,14 @@ export function ClientFields({
         {activeField === "company" && visibleSuggestions.length > 0 ? (
           <ClientSuggestionList suggestions={visibleSuggestions} onSelect={selectClient} />
         ) : null}
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="clientCity">City</Label>
+        <Input id="clientCity" name="clientCity" value={city} onChange={(e) => setCity(e.target.value)} />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="clientState">State</Label>
+        <Input id="clientState" name="clientState" value={state} onChange={(e) => setState(e.target.value)} />
       </div>
     </div>
   );

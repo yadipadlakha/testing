@@ -1,17 +1,21 @@
 import Link from "next/link";
-import { Plus, Pencil, Trash2, MapPin, Clock } from "lucide-react";
+import { Plus, Pencil, Trash2, MapPin, Clock, Star } from "lucide-react";
 import { requireModuleAccess } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { deleteSightseeing } from "@/lib/actions/sightseeing-actions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/format";
 
 export default async function SightseeingListPage() {
   const session = await requireModuleAccess("SIGHTSEEING");
   const isAdmin = session.user.role === "ADMIN";
 
-  const activities = await prisma.sightseeing.findMany({ orderBy: { createdAt: "desc" } });
+  const activities = await prisma.sightseeing.findMany({
+    include: { activityTypes: true, _count: { select: { rates: true } } },
+    orderBy: { createdAt: "desc" },
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -37,19 +41,38 @@ export default async function SightseeingListPage() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {activities.map((activity) => (
             <Card key={activity.id} className="gap-2 p-4">
-              <p className="text-sm font-semibold text-foreground">{activity.name}</p>
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-sm font-semibold text-foreground">{activity.name}</p>
+                {activity.starRating ? (
+                  <span className="flex items-center gap-0.5 text-xs font-medium text-amber-600">
+                    {activity.starRating}
+                    <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
+                  </span>
+                ) : null}
+              </div>
               <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                <MapPin className="h-3 w-3" /> {activity.destination}
+                <MapPin className="h-3 w-3" /> {activity.city}, {activity.country}
               </p>
               {activity.duration ? (
                 <p className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Clock className="h-3 w-3" /> {activity.duration}
                 </p>
               ) : null}
-              <p className="text-sm font-medium text-foreground">{formatCurrency(activity.price)} / person</p>
-              {activity.description ? (
-                <p className="line-clamp-2 text-xs text-muted-foreground">{activity.description}</p>
+              {activity.price ? (
+                <p className="text-sm font-medium text-foreground">{formatCurrency(activity.price)} / person</p>
               ) : null}
+              {activity.activityTypes.length > 0 ? (
+                <div className="flex flex-wrap gap-1">
+                  {activity.activityTypes.map((type) => (
+                    <Badge key={type.id} variant="outline">
+                      {type.name}
+                    </Badge>
+                  ))}
+                </div>
+              ) : null}
+              <p className="text-xs text-muted-foreground">
+                {activity._count.rates} rate band{activity._count.rates === 1 ? "" : "s"}
+              </p>
 
               {isAdmin ? (
                 <div className="mt-2 flex gap-1.5">

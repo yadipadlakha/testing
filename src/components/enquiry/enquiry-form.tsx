@@ -16,6 +16,8 @@ type EnquiryFormValues = {
   clientPhone?: string;
   clientEmail?: string;
   companyName?: string;
+  clientCity?: string;
+  clientState?: string;
   type?: string;
   travelTo?: string;
   travelDate?: string;
@@ -59,6 +61,8 @@ export function EnquiryForm({
               clientPhone: v.clientPhone,
               clientEmail: v.clientEmail,
               companyName: v.companyName,
+              clientCity: v.clientCity,
+              clientState: v.clientState,
             }}
           />
         </CardContent>

@@ -1,6 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Pencil, Phone, Mail, Building2, MapPin, CalendarDays, Users as UsersIcon, Star, Coins } from "lucide-react";
+import {
+  Pencil,
+  Phone,
+  Mail,
+  Building2,
+  MapPin,
+  CalendarDays,
+  Users as UsersIcon,
+  Star,
+  Coins,
+  Plus,
+  FileText,
+} from "lucide-react";
 import { requireModuleAccess } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { updateEnquiryStatus } from "@/lib/actions/enquiry-actions";
@@ -8,6 +20,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
+import { formatQuotationNumber, computeQuotationTotals } from "@/lib/quotation";
+import { formatCurrency } from "@/lib/format";
 import {
   ENQUIRY_STATUSES,
   STATUS_LABELS,
@@ -23,7 +37,12 @@ export default async function EnquiryDetailPage({ params }: { params: Promise<{ 
 
   const enquiry = await prisma.enquiry.findUnique({
     where: { id },
-    include: { client: true, allocatedTo: true, createdBy: true },
+    include: {
+      client: true,
+      allocatedTo: true,
+      createdBy: true,
+      quotations: { include: { items: true }, orderBy: { createdAt: "desc" } },
+    },
   });
 
   if (!enquiry) notFound();
@@ -87,6 +106,12 @@ export default async function EnquiryDetailPage({ params }: { params: Promise<{ 
               <Mail className="h-4 w-4 text-muted-foreground" /> {enquiry.client.email}
             </p>
           ) : null}
+          {enquiry.client.city || enquiry.client.state ? (
+            <p className="flex items-center gap-2 text-sm text-foreground">
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+              {[enquiry.client.city, enquiry.client.state].filter(Boolean).join(", ")}
+            </p>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -121,6 +146,48 @@ export default async function EnquiryDetailPage({ params }: { params: Promise<{ 
             <Coins className="h-4 w-4 text-muted-foreground" /> {enquiry.currency}
           </p>
           <p className="text-sm text-foreground">Allocated to {enquiry.allocatedTo?.name ?? "Unassigned"}</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex-row items-center justify-between">
+          <CardTitle>Quotations</CardTitle>
+          <Button asChild size="sm">
+            <Link href={`/enquiry/${enquiry.id}/quotations/new`}>
+              <Plus className="h-3.5 w-3.5" /> Generate Quotation
+            </Link>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {enquiry.quotations.length === 0 ? (
+            <p className="py-4 text-center text-sm text-muted-foreground">No quotations yet.</p>
+          ) : (
+            <div className="flex flex-col divide-y divide-border">
+              {enquiry.quotations.map((quotation) => {
+                const totals = computeQuotationTotals(quotation.items, quotation.discount, quotation.taxPercent);
+                return (
+                  <Link
+                    key={quotation.id}
+                    href={`/quotations/${quotation.id}`}
+                    className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0 hover:bg-muted/50 sm:rounded-md sm:px-2"
+                  >
+                    <div className="flex items-center gap-3">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium text-foreground">
+                          {formatQuotationNumber(quotation.quotationNumber)} — {quotation.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Created {formatDate(quotation.createdAt)}</p>
+                      </div>
+                    </div>
+                    <p className="text-sm font-semibold text-foreground">
+                      {formatCurrency(totals.total, quotation.currency)}
+                    </p>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
 

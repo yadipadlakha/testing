@@ -34,7 +34,7 @@ export function Topbar({
   ].filter((item) => item.show);
 
   return (
-    <header className="sticky top-0 z-10 border-b border-border bg-card">
+    <header className="sticky top-0 z-10 border-b border-border bg-card print:hidden">
       <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6">
         <div className="md:hidden">
           <Logo />

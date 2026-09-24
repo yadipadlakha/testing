@@ -14,6 +14,8 @@ const enquirySchema = z.object({
   clientPhone: z.string().min(6, "A valid phone number is required"),
   clientEmail: z.union([z.literal(""), z.string().email()]).optional(),
   companyName: z.string().optional(),
+  clientCity: z.string().optional(),
+  clientState: z.string().optional(),
   type: z.enum(["HOLIDAY_PACKAGE", "FLIGHT_ONLY", "HOTEL_ONLY", "VISA", "OTHER"]),
   travelTo: z.string().min(1, "Destination is required"),
   travelDate: z.string().min(1, "Travel date is required"),
@@ -27,19 +29,30 @@ const enquirySchema = z.object({
   allocatedToId: z.string().optional(),
 });
 
-async function upsertClient(data: { name: string; phone: string; email?: string; companyName?: string }) {
+async function upsertClient(data: {
+  name: string;
+  phone: string;
+  email?: string;
+  companyName?: string;
+  city?: string;
+  state?: string;
+}) {
   return prisma.client.upsert({
     where: { phone: data.phone },
     update: {
       name: data.name,
       email: data.email || undefined,
       companyName: data.companyName || undefined,
+      city: data.city || undefined,
+      state: data.state || undefined,
     },
     create: {
       name: data.name,
       phone: data.phone,
       email: data.email || undefined,
       companyName: data.companyName || undefined,
+      city: data.city || undefined,
+      state: data.state || undefined,
     },
   });
 }
@@ -58,6 +71,8 @@ export async function createEnquiry(_prevState: ActionState, formData: FormData)
     phone: data.clientPhone,
     email: data.clientEmail,
     companyName: data.companyName,
+    city: data.clientCity,
+    state: data.clientState,
   });
 
   const allocatedToId = session.user.role === "ADMIN" ? data.allocatedToId || session.user.id : session.user.id;
@@ -108,6 +123,8 @@ export async function updateEnquiry(
     phone: data.clientPhone,
     email: data.clientEmail,
     companyName: data.companyName,
+    city: data.clientCity,
+    state: data.clientState,
   });
 
   const allocatedToId =

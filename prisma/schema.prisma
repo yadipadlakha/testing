@@ -36,6 +36,13 @@ enum EnquiryType {
   OTHER
 }
 
+enum QuotationItemCategory {
+  HOTEL
+  SIGHTSEEING
+  TRANSPORT
+  OTHER
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -58,6 +65,7 @@ model User {
   createdHotels      Hotel[]       @relation("CreatedHotels")
   createdSightseeing Sightseeing[] @relation("CreatedSightseeing")
   createdTransport   Transport[]   @relation("CreatedTransport")
+  createdQuotations  Quotation[]   @relation("CreatedQuotations")
 
   @@index([createdById])
 }
@@ -89,6 +97,8 @@ model Client {
   phone       String   @unique
   email       String?
   companyName String?
+  city        String?
+  state       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -125,6 +135,8 @@ model Enquiry {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  quotations Quotation[]
+
   @@index([status])
   @@index([allocatedToId])
   @@index([clientId])
@@ -152,12 +164,21 @@ model Hotel {
 }
 
 model Sightseeing {
-  id          String  @id @default(cuid())
-  name        String
-  destination String
-  duration    String?
-  price       Int?
-  description String?
+  id           String  @id @default(cuid())
+  name         String
+  country      String
+  city         String
+  starRating   Float?
+  duration     String?
+  address      String?
+  latitude     Float?
+  longitude    Float?
+  contactPhone String?
+  tourSummary  String?
+  price        Int?
+
+  activityTypes SightseeingActivityType[]
+  rates         SightseeingRate[]
 
   createdById String
   createdBy   User   @relation("CreatedSightseeing", fields: [createdById], references: [id])
@@ -165,7 +186,43 @@ model Sightseeing {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([destination])
+  @@index([country, city])
+}
+
+model SightseeingActivityType {
+  id           String        @id @default(cuid())
+  name         String        @unique
+  sightseeings Sightseeing[]
+  createdAt    DateTime      @default(now())
+}
+
+model SightseeingRate {
+  id            String      @id @default(cuid())
+  sightseeingId String
+  sightseeing   Sightseeing @relation(fields: [sightseeingId], references: [id], onDelete: Cascade)
+
+  title      String?
+  startDate  DateTime
+  endDate    DateTime
+  daysOfWeek String[]
+
+  adultRate  Int?
+  minAdult   Int?
+  maxAdult   Int?
+  childRate  Int?
+  minChild   Int?
+  maxChild   Int?
+  infantRate Int?
+  minInfant  Int?
+  maxInfant  Int?
+
+  cancelPolicy String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sightseeingId])
+  @@index([startDate, endDate])
 }
 
 model Transport {
@@ -185,4 +242,43 @@ model Transport {
   updatedAt DateTime @updatedAt
 
   @@index([destination])
+}
+
+model Quotation {
+  id              String   @id @default(cuid())
+  quotationNumber Int      @unique @default(autoincrement())
+
+  enquiryId String
+  enquiry   Enquiry @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+
+  title              String
+  currency           String
+  validUntil         DateTime?
+  discount           Int     @default(0)
+  taxPercent         Int     @default(0)
+  termsAndConditions String?
+
+  items QuotationItem[]
+
+  createdById String
+  createdBy   User   @relation("CreatedQuotations", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([enquiryId])
+}
+
+model QuotationItem {
+  id          String    @id @default(cuid())
+  quotationId String
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  category    QuotationItemCategory @default(OTHER)
+  description String
+  quantity    Int                   @default(1)
+  unitPrice   Int
+  sortOrder   Int                   @default(0)
+
+  @@index([quotationId])
 }

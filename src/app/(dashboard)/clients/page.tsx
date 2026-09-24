@@ -1,4 +1,4 @@
-import { Search, Phone, Mail, Building2 } from "lucide-react";
+import { Search, Phone, Mail, Building2, MapPin } from "lucide-react";
 import { requireModuleAccess } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/card";
@@ -65,6 +65,11 @@ export default async function ClientDetailsPage({
               {client.email ? (
                 <p className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Mail className="h-3 w-3" /> {client.email}
+                </p>
+              ) : null}
+              {client.city || client.state ? (
+                <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <MapPin className="h-3 w-3" /> {[client.city, client.state].filter(Boolean).join(", ")}
                 </p>
               ) : null}
               <p className="mt-1 text-xs text-muted-foreground">

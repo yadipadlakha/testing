@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Upload, Pencil, Trash2, Search } from "lucide-react";
 import { requireModuleAccess } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { deleteHotel } from "@/lib/actions/hotel-actions";
@@ -36,6 +36,7 @@ export default async function HotelListPage({
   const [hotels, totalCount, destinations] = await Promise.all([
     prisma.hotel.findMany({
       where,
+      include: { _count: { select: { seasons: true, roomRates: true } } },
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
@@ -55,11 +56,18 @@ export default async function HotelListPage({
           <p className="mt-1 text-sm text-muted-foreground">Catalog of hotel partners and their rates.</p>
         </div>
         {isAdmin ? (
-          <Button asChild>
-            <Link href="/hotel/new">
-              <Plus className="h-4 w-4" /> Add Hotel
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button asChild variant="outline">
+              <Link href="/hotel/import">
+                <Upload className="h-4 w-4" /> Import from CSV
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link href="/hotel/new">
+                <Plus className="h-4 w-4" /> Add Hotel
+              </Link>
+            </Button>
+          </div>
         ) : null}
       </div>
 
@@ -112,7 +120,8 @@ export default async function HotelListPage({
                 <th className="px-4 py-3">Hotel</th>
                 <th className="px-4 py-3">Destination</th>
                 <th className="px-4 py-3">Stars</th>
-                <th className="px-4 py-3">Price / night</th>
+                <th className="px-4 py-3">From</th>
+                <th className="px-4 py-3">Rate Plans</th>
                 <th className="px-4 py-3">Contact</th>
                 {isAdmin ? <th className="px-4 py-3 text-right">Actions</th> : null}
               </tr>
@@ -123,7 +132,12 @@ export default async function HotelListPage({
                   <td className="px-4 py-3 font-medium text-foreground">{hotel.name}</td>
                   <td className="px-4 py-3 text-muted-foreground">{hotel.destination}</td>
                   <td className="px-4 py-3 text-amber-600">{hotel.starRating ? `${hotel.starRating} ★` : "—"}</td>
-                  <td className="px-4 py-3 text-foreground">{formatCurrency(hotel.pricePerNight)}</td>
+                  <td className="px-4 py-3 text-foreground">{formatCurrency(hotel.pricePerNight, hotel.currency)}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {hotel._count.seasons > 0
+                      ? `${hotel._count.seasons} season${hotel._count.seasons === 1 ? "" : "s"} · ${hotel._count.roomRates} rate${hotel._count.roomRates === 1 ? "" : "s"}`
+                      : "—"}
+                  </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {hotel.contactPerson ?? "—"}
                     {hotel.contactPhone ? ` · ${hotel.contactPhone}` : ""}

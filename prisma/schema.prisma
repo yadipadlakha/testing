@@ -155,7 +155,12 @@ model Hotel {
   contactPhone  String?
   contactEmail  String?
   pricePerNight Int?
+  currency      String  @default("INR")
   notes         String?
+
+  seasons    HotelSeason[]
+  roomRates  HotelRoomRate[]
+  extraRates HotelExtraRate[]
 
   createdById String
   createdBy   User   @relation("CreatedHotels", fields: [createdById], references: [id])
@@ -164,6 +169,60 @@ model Hotel {
   updatedAt DateTime @updatedAt
 
   @@index([destination])
+}
+
+model HotelSeason {
+  id        String @id @default(cuid())
+  hotelId   String
+  hotel     Hotel  @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  name      String
+  startDate DateTime
+  endDate   DateTime
+
+  roomRates  HotelRoomRate[]
+  extraRates HotelExtraRate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([hotelId])
+}
+
+model HotelRoomRate {
+  id       String      @id @default(cuid())
+  hotelId  String
+  hotel    Hotel       @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  seasonId String
+  season   HotelSeason @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  roomCategory String
+  roomType     String
+  mealPlan     String
+  pax          String
+  rate         Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([hotelId])
+  @@index([seasonId])
+}
+
+model HotelExtraRate {
+  id       String      @id @default(cuid())
+  hotelId  String
+  hotel    Hotel       @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  seasonId String
+  season   HotelSeason @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  label String
+  rate  Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([hotelId])
+  @@index([seasonId])
 }
 
 model Sightseeing {

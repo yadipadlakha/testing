@@ -6,7 +6,13 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/permissions";
 import type { ActionState } from "@/lib/actions/auth-actions";
-import { parseSpreadsheet, splitList, summarizeBulkUpload, type BulkUploadResult } from "@/lib/bulk-upload";
+import {
+  parseWorkbookSheets,
+  splitList,
+  summarizeBulkUpload,
+  resolveReferenceId,
+  type BulkUploadSection,
+} from "@/lib/bulk-upload";
 import { TRIP_TYPES } from "@/lib/transport";
 
 const emptyToUndefined = (val: unknown) => (val === "" ? undefined : val);
@@ -238,6 +244,29 @@ const bulkVehicleRowSchema = z.object({
   amenities: z.string().optional(),
 });
 
+const bulkRouteRowSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1, "Route name is required"),
+  destinations: z.string().optional(),
+  itineraryText: z.string().min(1, "Itinerary text is required"),
+  actualDistanceKm: z.coerce.number().int().min(0, "Actual distance is required"),
+  displayDistanceKm: z.preprocess(emptyToUndefined, z.coerce.number().int().min(0).optional()),
+  itineraryDurationHours: z.coerce.number().int().min(0, "Itinerary duration is required"),
+  activities: z.string().optional(),
+});
+
+const bulkPricingRowSchema = z.object({
+  vehicleId: z.string().optional(),
+  vehicleTitle: z.string().optional(),
+  routeId: z.string().optional(),
+  routeName: z.string().optional(),
+  pricePerKm: z.preprocess(emptyToUndefined, z.coerce.number().int().min(0).optional()),
+  nightCharge: z.preprocess(emptyToUndefined, z.coerce.number().int().min(0).optional()),
+  tollTax: z.preprocess(emptyToUndefined, z.coerce.number().int().min(0).optional()),
+  driverAllowance: z.preprocess(emptyToUndefined, z.coerce.number().int().min(0).optional()),
+  totalPrice: z.preprocess(emptyToUndefined, z.coerce.number().int().min(0).optional()),
+});
+
 function normalizeTripTypes(value: string | undefined): string[] {
   return splitList(value).map((entry) => {
     const match = TRIP_TYPES.find(
@@ -247,23 +276,25 @@ function normalizeTripTypes(value: string | undefined): string[] {
   });
 }
 
-export async function bulkUploadVehicles(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+export async function bulkUploadTransport(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const session = await requireAdmin();
 
   const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) return { error: "Choose a CSV or Excel file to upload." };
+  if (!(file instanceof File) || file.size === 0) return { error: "Choose the Excel workbook to upload." };
 
-  let rows: Record<string, string>[];
+  let sheets: Record<string, Record<string, string>[]>;
   try {
-    rows = parseSpreadsheet(await file.arrayBuffer());
+    sheets = parseWorkbookSheets(await file.arrayBuffer());
   } catch {
-    return { error: "Could not read that file. Make sure it's a valid .csv or .xlsx file." };
+    return { error: "Could not read that file. Make sure it's the .xlsx template, unmodified in structure." };
   }
 
-  const result: BulkUploadResult = { created: 0, updated: 0, skipped: [] };
+  const skipped: string[] = [];
+  const vehicleTitleToId = new Map<string, string>();
+  const routeNameToId = new Map<string, string>();
 
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i];
+  const vehicleSection: BulkUploadSection = { label: "Vehicles", created: 0, updated: 0 };
+  for (const [i, row] of (sheets["Vehicles"] ?? []).entries()) {
     const rowNum = i + 2;
     const parsed = bulkVehicleRowSchema.safeParse({
       id: row["ID"],
@@ -282,11 +313,10 @@ export async function bulkUploadVehicles(_prevState: ActionState, formData: Form
       amenities: row["Amenities"],
     });
     if (!parsed.success) {
-      result.skipped.push(`Row ${rowNum}: ${parsed.error.issues[0]?.message ?? "invalid data"}`);
+      skipped.push(`Vehicles row ${rowNum}: ${parsed.error.issues[0]?.message ?? "invalid data"}`);
       continue;
     }
     const data = parsed.data;
-
     const values = {
       vehicleType: data.vehicleType,
       subType: data.subType || undefined,
@@ -302,20 +332,150 @@ export async function bulkUploadVehicles(_prevState: ActionState, formData: Form
       recommendedDriver: data.recommendedDriver || undefined,
       amenities: splitList(data.amenities),
     };
+    try {
+      let id: string;
+      if (data.id) {
+        const updated = await prisma.transport.update({ where: { id: data.id }, data: values });
+        id = updated.id;
+        vehicleSection.updated++;
+      } else {
+        const created = await prisma.transport.create({ data: { ...values, createdById: session.user.id } });
+        id = created.id;
+        vehicleSection.created++;
+      }
+      vehicleTitleToId.set(data.title.toLowerCase(), id);
+    } catch {
+      skipped.push(`Vehicles row ${rowNum}: could not save (check the ID exists if updating)`);
+    }
+  }
+
+  const routeSection: BulkUploadSection = { label: "Routes", created: 0, updated: 0 };
+  for (const [i, row] of (sheets["Routes"] ?? []).entries()) {
+    const rowNum = i + 2;
+    const parsed = bulkRouteRowSchema.safeParse({
+      id: row["ID"],
+      name: row["Route Name"],
+      destinations: row["Destinations"],
+      itineraryText: row["Itinerary Text"],
+      actualDistanceKm: row["Actual Distance Km"],
+      displayDistanceKm: row["Display Distance Km"],
+      itineraryDurationHours: row["Itinerary Duration Hours"],
+      activities: row["Attractions/Activities"],
+    });
+    if (!parsed.success) {
+      skipped.push(`Routes row ${rowNum}: ${parsed.error.issues[0]?.message ?? "invalid data"}`);
+      continue;
+    }
+    const data = parsed.data;
+    const destinations = splitList(data.destinations);
+    if (destinations.length === 0) {
+      skipped.push(`Routes row ${rowNum}: add at least one destination`);
+      continue;
+    }
+    const activityNames = splitList(data.activities);
+    const activities = activityNames.length
+      ? await prisma.sightseeing.findMany({
+          where: { name: { in: activityNames, mode: "insensitive" } },
+          select: { id: true },
+        })
+      : [];
+
+    const values = {
+      name: data.name,
+      destinations,
+      itineraryText: data.itineraryText,
+      actualDistanceKm: data.actualDistanceKm,
+      displayDistanceKm: data.displayDistanceKm,
+      itineraryDurationHours: data.itineraryDurationHours,
+    };
+    try {
+      let id: string;
+      if (data.id) {
+        const updated = await prisma.transportRoute.update({
+          where: { id: data.id },
+          data: { ...values, activities: { set: activities.map((a) => ({ id: a.id })) } },
+        });
+        id = updated.id;
+        routeSection.updated++;
+      } else {
+        const created = await prisma.transportRoute.create({
+          data: { ...values, activities: { connect: activities.map((a) => ({ id: a.id })) }, createdById: session.user.id },
+        });
+        id = created.id;
+        routeSection.created++;
+      }
+      routeNameToId.set(data.name.toLowerCase(), id);
+    } catch {
+      skipped.push(`Routes row ${rowNum}: could not save (check the ID exists if updating)`);
+    }
+  }
+
+  const pricingSection: BulkUploadSection = { label: "Route Pricing", created: 0, updated: 0 };
+  for (const [i, row] of (sheets["Route Pricing"] ?? []).entries()) {
+    const rowNum = i + 2;
+    const parsed = bulkPricingRowSchema.safeParse({
+      vehicleId: row["Vehicle ID (optional)"] || row["Vehicle ID"],
+      vehicleTitle: row["Vehicle Title"],
+      routeId: row["Route ID (optional)"] || row["Route ID"],
+      routeName: row["Route Name"],
+      pricePerKm: row["Price/KM"],
+      nightCharge: row["Night Charge"],
+      tollTax: row["Toll Tax"],
+      driverAllowance: row["Driver Allowance"],
+      totalPrice: row["Total Price"],
+    });
+    if (!parsed.success) {
+      skipped.push(`Route Pricing row ${rowNum}: ${parsed.error.issues[0]?.message ?? "invalid data"}`);
+      continue;
+    }
+    const data = parsed.data;
+
+    const vehicleRef = await resolveReferenceId(data.vehicleId, data.vehicleTitle, vehicleTitleToId, (title) =>
+      prisma.transport.findMany({ where: { title: { equals: title, mode: "insensitive" } }, select: { id: true } }),
+    );
+    if ("error" in vehicleRef) {
+      skipped.push(`Route Pricing row ${rowNum}: vehicle ${vehicleRef.error}`);
+      continue;
+    }
+    const routeRef = await resolveReferenceId(data.routeId, data.routeName, routeNameToId, (name) =>
+      prisma.transportRoute.findMany({ where: { name: { equals: name, mode: "insensitive" } }, select: { id: true } }),
+    );
+    if ("error" in routeRef) {
+      skipped.push(`Route Pricing row ${rowNum}: route ${routeRef.error}`);
+      continue;
+    }
 
     try {
-      if (data.id) {
-        await prisma.transport.update({ where: { id: data.id }, data: values });
-        result.updated++;
-      } else {
-        await prisma.transport.create({ data: { ...values, createdById: session.user.id } });
-        result.created++;
-      }
+      const existing = await prisma.transportRoutePricing.findUnique({
+        where: { transportId_routeId: { transportId: vehicleRef.id, routeId: routeRef.id } },
+      });
+      await prisma.transportRoutePricing.upsert({
+        where: { transportId_routeId: { transportId: vehicleRef.id, routeId: routeRef.id } },
+        update: {
+          pricePerKm: data.pricePerKm,
+          nightCharge: data.nightCharge,
+          tollTax: data.tollTax,
+          driverAllowance: data.driverAllowance,
+          totalPrice: data.totalPrice,
+        },
+        create: {
+          transportId: vehicleRef.id,
+          routeId: routeRef.id,
+          pricePerKm: data.pricePerKm,
+          nightCharge: data.nightCharge,
+          tollTax: data.tollTax,
+          driverAllowance: data.driverAllowance,
+          totalPrice: data.totalPrice,
+        },
+      });
+      if (existing) pricingSection.updated++;
+      else pricingSection.created++;
     } catch {
-      result.skipped.push(`Row ${rowNum}: could not save (check the ID exists if updating)`);
+      skipped.push(`Route Pricing row ${rowNum}: could not save`);
     }
   }
 
   revalidatePath("/transport");
-  return summarizeBulkUpload(result);
+  revalidatePath("/transport/routes");
+  return summarizeBulkUpload([vehicleSection, routeSection, pricingSection], skipped);
 }

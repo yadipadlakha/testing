@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getModulePermissions } from "@/lib/permissions";
-import { buildTemplateFile, type TemplateFormat } from "@/lib/bulk-upload";
+import { buildTemplateWorkbook } from "@/lib/bulk-upload";
 
-const HEADERS = [
+const ACTIVITY_HEADERS = [
   "ID",
   "Name",
   "Country",
@@ -18,26 +18,60 @@ const HEADERS = [
   "Price",
   "Activity Types",
 ];
-
-const SAMPLE_ROWS = [
-  [
-    "",
-    "Sigiriya Rock Fortress Tour",
-    "Sri Lanka",
-    "Dambulla",
-    "4.5",
-    "Full Day",
-    "Sigiriya, Central Province",
-    "7.9570",
-    "80.7603",
-    "+94 81 249 8000",
-    "Guided full-day tour of the ancient Sigiriya rock fortress, a UNESCO World Heritage Site.",
-    "3500",
-    "Cultural Tour, Early Entry Pass",
-  ],
+const ACTIVITY_SAMPLE = [
+  "",
+  "Sigiriya Rock Fortress Tour",
+  "Sri Lanka",
+  "Dambulla",
+  "4.5",
+  "Full Day",
+  "Sigiriya, Central Province",
+  "7.9570",
+  "80.7603",
+  "+94 81 249 8000",
+  "Guided full-day tour of the ancient Sigiriya rock fortress, a UNESCO World Heritage Site.",
+  "3500",
+  "Cultural Tour, Early Entry Pass",
 ];
 
-export async function GET(request: Request) {
+const RATE_HEADERS = [
+  "Activity ID (optional)",
+  "Activity Name",
+  "Title",
+  "Start Date",
+  "End Date",
+  "Days Of Week",
+  "Adult Rate",
+  "Min Adult",
+  "Max Adult",
+  "Child Rate",
+  "Min Child",
+  "Max Child",
+  "Infant Rate",
+  "Min Infant",
+  "Max Infant",
+  "Cancel Policy",
+];
+const RATE_SAMPLE = [
+  "",
+  "Sigiriya Rock Fortress Tour",
+  "Standard season",
+  "2026-01-01",
+  "2026-12-31",
+  "Sun, Mon, Tue, Wed, Thu, Fri, Sat",
+  "3500",
+  "1",
+  "",
+  "1800",
+  "0",
+  "4",
+  "0",
+  "",
+  "",
+  "Free cancellation up to 24 hours before the activity.",
+];
+
+export async function GET() {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -46,13 +80,15 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const format: TemplateFormat = new URL(request.url).searchParams.get("format") === "csv" ? "csv" : "xlsx";
-  const { blob, contentType } = buildTemplateFile(HEADERS, SAMPLE_ROWS, format);
+  const blob = buildTemplateWorkbook([
+    { name: "Activities", headers: ACTIVITY_HEADERS, rows: [ACTIVITY_SAMPLE] },
+    { name: "Price Calendar", headers: RATE_HEADERS, rows: [RATE_SAMPLE] },
+  ]);
 
   return new NextResponse(blob, {
     headers: {
-      "Content-Type": contentType,
-      "Content-Disposition": `attachment; filename="activity-template.${format}"`,
+      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Content-Disposition": 'attachment; filename="activity-template.xlsx"',
     },
   });
 }

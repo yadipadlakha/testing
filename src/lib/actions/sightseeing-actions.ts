@@ -6,7 +6,13 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/permissions";
 import type { ActionState } from "@/lib/actions/auth-actions";
-import { parseSpreadsheet, splitList, summarizeBulkUpload, type BulkUploadResult } from "@/lib/bulk-upload";
+import {
+  parseWorkbookSheets,
+  splitList,
+  summarizeBulkUpload,
+  resolveReferenceId,
+  type BulkUploadSection,
+} from "@/lib/bulk-upload";
 
 const emptyToUndefined = (val: unknown) => (val === "" ? undefined : val);
 
@@ -213,6 +219,25 @@ const bulkSightseeingRowSchema = z.object({
   activityTypes: z.string().optional(),
 });
 
+const bulkRateRowSchema = z.object({
+  activityId: z.string().optional(),
+  activityName: z.string().optional(),
+  title: z.string().optional(),
+  startDate: z.string().min(1, "Start date is required"),
+  endDate: z.string().min(1, "End date is required"),
+  daysOfWeek: z.string().optional(),
+  adultRate: z.preprocess(emptyToUndefined, z.coerce.number().int().min(0).optional()),
+  minAdult: z.preprocess(emptyToUndefined, z.coerce.number().int().min(0).optional()),
+  maxAdult: z.preprocess(emptyToUndefined, z.coerce.number().int().min(0).optional()),
+  childRate: z.preprocess(emptyToUndefined, z.coerce.number().int().min(0).optional()),
+  minChild: z.preprocess(emptyToUndefined, z.coerce.number().int().min(0).optional()),
+  maxChild: z.preprocess(emptyToUndefined, z.coerce.number().int().min(0).optional()),
+  infantRate: z.preprocess(emptyToUndefined, z.coerce.number().int().min(0).optional()),
+  minInfant: z.preprocess(emptyToUndefined, z.coerce.number().int().min(0).optional()),
+  maxInfant: z.preprocess(emptyToUndefined, z.coerce.number().int().min(0).optional()),
+  cancelPolicy: z.string().optional(),
+});
+
 async function resolveActivityTypeIds(names: string[]): Promise<string[]> {
   const ids: string[] = [];
   for (const name of names) {
@@ -226,23 +251,44 @@ async function resolveActivityTypeIds(names: string[]): Promise<string[]> {
   return ids;
 }
 
+const DAY_NAMES: Record<string, (typeof DAY_CODES)[number]> = {
+  sunday: "SUN",
+  monday: "MON",
+  tuesday: "TUE",
+  wednesday: "WED",
+  thursday: "THU",
+  friday: "FRI",
+  saturday: "SAT",
+};
+
+function normalizeDaysOfWeek(value: string | undefined): string[] {
+  return splitList(value).map((entry) => {
+    const lower = entry.toLowerCase();
+    const byName = DAY_NAMES[lower];
+    if (byName) return byName;
+    const byCode = DAY_CODES.find((code) => code.toLowerCase() === lower || code.toLowerCase().startsWith(lower.slice(0, 3)));
+    return byCode ?? entry.toUpperCase();
+  });
+}
+
 export async function bulkUploadSightseeing(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const session = await requireAdmin();
 
   const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) return { error: "Choose a CSV or Excel file to upload." };
+  if (!(file instanceof File) || file.size === 0) return { error: "Choose the Excel workbook to upload." };
 
-  let rows: Record<string, string>[];
+  let sheets: Record<string, Record<string, string>[]>;
   try {
-    rows = parseSpreadsheet(await file.arrayBuffer());
+    sheets = parseWorkbookSheets(await file.arrayBuffer());
   } catch {
-    return { error: "Could not read that file. Make sure it's a valid .csv or .xlsx file." };
+    return { error: "Could not read that file. Make sure it's the .xlsx template, unmodified in structure." };
   }
 
-  const result: BulkUploadResult = { created: 0, updated: 0, skipped: [] };
+  const skipped: string[] = [];
+  const activityNameToId = new Map<string, string>();
 
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i];
+  const activitySection: BulkUploadSection = { label: "Activities", created: 0, updated: 0 };
+  for (const [i, row] of (sheets["Activities"] ?? []).entries()) {
     const rowNum = i + 2;
     const parsed = bulkSightseeingRowSchema.safeParse({
       id: row["ID"],
@@ -260,7 +306,7 @@ export async function bulkUploadSightseeing(_prevState: ActionState, formData: F
       activityTypes: row["Activity Types"],
     });
     if (!parsed.success) {
-      result.skipped.push(`Row ${rowNum}: ${parsed.error.issues[0]?.message ?? "invalid data"}`);
+      skipped.push(`Activities row ${rowNum}: ${parsed.error.issues[0]?.message ?? "invalid data"}`);
       continue;
     }
     const data = parsed.data;
@@ -281,27 +327,102 @@ export async function bulkUploadSightseeing(_prevState: ActionState, formData: F
         price: data.price,
       };
 
+      let id: string;
       if (data.id) {
-        await prisma.sightseeing.update({
+        const updated = await prisma.sightseeing.update({
           where: { id: data.id },
-          data: { ...values, activityTypes: { set: activityTypeIds.map((id) => ({ id })) } },
+          data: { ...values, activityTypes: { set: activityTypeIds.map((tid) => ({ id: tid })) } },
         });
-        result.updated++;
+        id = updated.id;
+        activitySection.updated++;
       } else {
-        await prisma.sightseeing.create({
+        const created = await prisma.sightseeing.create({
           data: {
             ...values,
-            activityTypes: { connect: activityTypeIds.map((id) => ({ id })) },
+            activityTypes: { connect: activityTypeIds.map((tid) => ({ id: tid })) },
             createdById: session.user.id,
           },
         });
-        result.created++;
+        id = created.id;
+        activitySection.created++;
       }
+      activityNameToId.set(data.name.toLowerCase(), id);
     } catch {
-      result.skipped.push(`Row ${rowNum}: could not save (check the ID exists if updating)`);
+      skipped.push(`Activities row ${rowNum}: could not save (check the ID exists if updating)`);
+    }
+  }
+
+  const rateSection: BulkUploadSection = { label: "Price Calendar", created: 0, updated: 0 };
+  for (const [i, row] of (sheets["Price Calendar"] ?? []).entries()) {
+    const rowNum = i + 2;
+    const parsed = bulkRateRowSchema.safeParse({
+      activityId: row["Activity ID (optional)"] || row["Activity ID"],
+      activityName: row["Activity Name"],
+      title: row["Title"],
+      startDate: row["Start Date"],
+      endDate: row["End Date"],
+      daysOfWeek: row["Days Of Week"],
+      adultRate: row["Adult Rate"],
+      minAdult: row["Min Adult"],
+      maxAdult: row["Max Adult"],
+      childRate: row["Child Rate"],
+      minChild: row["Min Child"],
+      maxChild: row["Max Child"],
+      infantRate: row["Infant Rate"],
+      minInfant: row["Min Infant"],
+      maxInfant: row["Max Infant"],
+      cancelPolicy: row["Cancel Policy"],
+    });
+    if (!parsed.success) {
+      skipped.push(`Price Calendar row ${rowNum}: ${parsed.error.issues[0]?.message ?? "invalid data"}`);
+      continue;
+    }
+    const data = parsed.data;
+
+    if (new Date(data.endDate) < new Date(data.startDate)) {
+      skipped.push(`Price Calendar row ${rowNum}: end date must be on or after the start date`);
+      continue;
+    }
+    const daysOfWeek = normalizeDaysOfWeek(data.daysOfWeek);
+    if (daysOfWeek.length === 0) {
+      skipped.push(`Price Calendar row ${rowNum}: select at least one day`);
+      continue;
+    }
+
+    const activityRef = await resolveReferenceId(data.activityId, data.activityName, activityNameToId, (name) =>
+      prisma.sightseeing.findMany({ where: { name: { equals: name, mode: "insensitive" } }, select: { id: true } }),
+    );
+    if ("error" in activityRef) {
+      skipped.push(`Price Calendar row ${rowNum}: activity ${activityRef.error}`);
+      continue;
+    }
+
+    try {
+      await prisma.sightseeingRate.create({
+        data: {
+          sightseeingId: activityRef.id,
+          title: data.title || undefined,
+          startDate: new Date(data.startDate),
+          endDate: new Date(data.endDate),
+          daysOfWeek,
+          adultRate: data.adultRate,
+          minAdult: data.minAdult,
+          maxAdult: data.maxAdult,
+          childRate: data.childRate,
+          minChild: data.minChild,
+          maxChild: data.maxChild,
+          infantRate: data.infantRate,
+          minInfant: data.minInfant,
+          maxInfant: data.maxInfant,
+          cancelPolicy: data.cancelPolicy || undefined,
+        },
+      });
+      rateSection.created++;
+    } catch {
+      skipped.push(`Price Calendar row ${rowNum}: could not save`);
     }
   }
 
   revalidatePath("/sightseeing");
-  return summarizeBulkUpload(result);
+  return summarizeBulkUpload([activitySection, rateSection], skipped);
 }

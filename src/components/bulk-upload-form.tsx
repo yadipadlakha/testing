@@ -11,11 +11,11 @@ import { SubmitButton } from "@/components/submit-button";
 export function BulkUploadForm({
   action,
   templateUrl,
-  columnsHelp,
+  helpText,
 }: {
   action: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
   templateUrl: string;
-  columnsHelp: string;
+  helpText: string;
 }) {
   const [state, formAction] = useActionState(action, undefined);
 
@@ -26,20 +26,11 @@ export function BulkUploadForm({
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5 rounded-md border border-dashed border-border p-3 text-sm text-muted-foreground">
-          <p>
-            Download a sample template, fill in your rows, then upload it below. {columnsHelp} Leave the{" "}
-            <span className="font-medium text-foreground">ID</span> column blank to add new records — fill it in
-            (from an earlier upload or export) to update an existing one instead.
-          </p>
-          <div className="mt-1 flex flex-wrap gap-2">
+          <p>{helpText}</p>
+          <div className="mt-1">
             <Button asChild variant="outline" size="sm">
-              <a href={`${templateUrl}?format=xlsx`} download>
-                <Download className="h-3.5 w-3.5" /> Sample Template (.xlsx)
-              </a>
-            </Button>
-            <Button asChild variant="outline" size="sm">
-              <a href={`${templateUrl}?format=csv`} download>
-                <Download className="h-3.5 w-3.5" /> Sample Template (.csv)
+              <a href={templateUrl} download>
+                <Download className="h-3.5 w-3.5" /> Download Sample Template (.xlsx)
               </a>
             </Button>
           </div>
@@ -52,7 +43,7 @@ export function BulkUploadForm({
               id="file"
               name="file"
               type="file"
-              accept=".csv,.xlsx,.xls"
+              accept=".xlsx,.xls"
               required
               className="w-full rounded-md border border-input bg-transparent px-3 py-1.5 text-sm text-foreground file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1 file:text-sm file:font-medium"
             />
@@ -62,8 +53,8 @@ export function BulkUploadForm({
           </SubmitButton>
         </form>
 
-        {state?.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-        {state?.success ? <p className="text-sm text-success">{state.success}</p> : null}
+        {state?.error ? <p className="text-sm whitespace-pre-line text-destructive">{state.error}</p> : null}
+        {state?.success ? <p className="text-sm whitespace-pre-line text-success">{state.success}</p> : null}
       </CardContent>
     </Card>
   );

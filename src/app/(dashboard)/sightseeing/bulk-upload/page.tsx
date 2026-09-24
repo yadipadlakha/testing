@@ -14,7 +14,7 @@ export default async function SightseeingBulkUploadPage() {
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Bulk Upload Activities</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Add or update many sightseeing activities at once from a spreadsheet.
+            Add or update activities and their price calendar at once from one spreadsheet.
           </p>
         </div>
         <div className="flex gap-2">
@@ -34,7 +34,13 @@ export default async function SightseeingBulkUploadPage() {
       <BulkUploadForm
         action={bulkUploadSightseeing}
         templateUrl="/api/sightseeing/template"
-        columnsHelp="Activity Types accepts comma-separated tag names — new tags are created automatically. This uploads the Overview details only; add price-calendar rate bands from each activity's edit page afterward."
+        helpText={
+          "The template has two sheets: Activities and Price Calendar — fill in whichever you need and upload " +
+          "it back. Activity Types accepts comma-separated tag names — new tags are created automatically. On " +
+          "the Price Calendar sheet, reference an activity either by its exact Activity Name or by ID; each row " +
+          "there always adds a new rate band, matching how rate bands are added one at a time from the web app. " +
+          "Leave the Activities sheet's ID column blank to add a new activity, or fill it in to update one."
+        }
       />
     </div>
   );

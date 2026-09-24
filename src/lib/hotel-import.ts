@@ -23,7 +23,7 @@ function parseDate(text: string): Date | null {
   const [, day, monthName, year] = match;
   const month = MONTHS[monthName.slice(0, 3).toLowerCase()];
   if (month === undefined) return null;
-  return new Date(Number(year), month, Number(day));
+  return new Date(Date.UTC(Number(year), month, Number(day)));
 }
 
 function isPropertyHeaderRow(cell: string): boolean {

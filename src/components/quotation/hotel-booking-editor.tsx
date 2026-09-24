@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { CURRENCIES } from "@/lib/enquiry";
+import { CURRENCIES, formatDate } from "@/lib/enquiry";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
@@ -24,6 +24,9 @@ import {
   type HotelBookingDetails,
   type HotelBookingStatus,
 } from "@/lib/hotel-booking";
+
+const WEEKDAY_NAMES = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 type HotelOption = { id: string; name: string; destination: string; address: string | null; currency: string };
 type RatesResponse = {
@@ -157,7 +160,11 @@ export function HotelBookingEditor({
     ];
   }, [rates, draft.roomCategory, draft.roomType]);
 
-  const tileWindow = useMemo(() => datesInRange(addDays(travelDateIso, -1), durationDays + 4), [travelDateIso, durationDays]);
+  const [windowOffset, setWindowOffset] = useState(0);
+  const tileWindow = useMemo(
+    () => datesInRange(addDays(addDays(travelDateIso, -1), windowOffset), durationDays + 4),
+    [travelDateIso, durationDays, windowOffset],
+  );
 
   function tilePrice(date: string): number | null {
     if (draft.rateMode !== "INVENTORY" || !rates || !draft.roomCategory || !draft.roomType || !draft.mealPlan) return null;
@@ -459,7 +466,17 @@ export function HotelBookingEditor({
 
                 {draft.roomCategory && draft.roomType && draft.mealPlan ? (
                   <div className="flex flex-col gap-1.5">
-                    <Label>Select Date Range</Label>
+                    <div className="flex items-center justify-between">
+                      <Label>Select Date Range</Label>
+                      <div className="flex gap-1">
+                        <Button type="button" variant="outline" size="icon-sm" onClick={() => setWindowOffset((o) => o - 7)}>
+                          <ChevronLeft className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button type="button" variant="outline" size="icon-sm" onClick={() => setWindowOffset((o) => o + 7)}>
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
                     <div className="flex gap-1.5 overflow-x-auto pb-1">
                       {tileWindow.map((date) => {
                         const price = tilePrice(date);
@@ -483,13 +500,28 @@ export function HotelBookingEditor({
                                   : "border-border text-foreground hover:bg-muted",
                             )}
                           >
-                            <span>{d.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase()}</span>
-                            <span className="font-semibold">{d.getDate()}</span>
+                            <span>{WEEKDAY_NAMES[d.getUTCDay()]}</span>
+                            <span className="font-semibold">
+                              {d.getUTCDate()} {MONTH_NAMES[d.getUTCMonth()]}
+                            </span>
                             <span>{price != null ? formatCurrency(price, draft.currency) : "—"}</span>
                           </button>
                         );
                       })}
                     </div>
+                    {!ratesLoading && rates && tileWindow.every((date) => tilePrice(date) == null) ? (
+                      <div className="rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
+                        <p>No rates available for this room in the dates shown. Use the arrows above to browse to a covered period.</p>
+                        {rates.seasons.length > 0 ? (
+                          <p className="mt-1">
+                            Available seasons:{" "}
+                            {rates.seasons
+                              .map((s) => `${s.name} (${formatDate(s.startDate)} – ${formatDate(s.endDate)})`)
+                              .join(", ")}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
                     {hasMissingRate ? (
                       <p className="text-xs text-amber-600">
                         Some selected nights have no rate available and are counted as {formatCurrency(0, draft.currency)}.

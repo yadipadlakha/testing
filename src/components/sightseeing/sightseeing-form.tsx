@@ -23,7 +23,6 @@ type SightseeingFormValues = {
   longitude?: number | "";
   contactPhone?: string;
   tourSummary?: string;
-  price?: number | "";
 };
 
 export function SightseeingForm({
@@ -128,11 +127,6 @@ export function SightseeingForm({
             <Label htmlFor="longitude">Longitude</Label>
             <Input id="longitude" name="longitude" type="number" step="any" defaultValue={v.longitude} />
           </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="price">Starting price per person (₹)</Label>
-            <Input id="price" name="price" type="number" min={0} defaultValue={v.price} />
-          </div>
-
           <div className="flex flex-col gap-1.5 sm:col-span-2">
             <Label>Activity Type</Label>
             <div className="flex flex-wrap items-center gap-2">

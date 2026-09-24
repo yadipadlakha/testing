@@ -27,7 +27,6 @@ const sightseeingSchema = z.object({
   longitude: z.preprocess(emptyToUndefined, z.coerce.number().min(-180).max(180).optional()),
   contactPhone: z.string().optional(),
   tourSummary: z.string().optional(),
-  price: z.preprocess(emptyToUndefined, z.coerce.number().int().min(0).optional()),
 });
 
 function parseActivityTypeIds(formData: FormData): string[] {
@@ -56,7 +55,6 @@ export async function createSightseeing(_prevState: ActionState, formData: FormD
       longitude: data.longitude,
       contactPhone: data.contactPhone || undefined,
       tourSummary: data.tourSummary || undefined,
-      price: data.price,
       activityTypes: { connect: activityTypeIds.map((id) => ({ id })) },
       createdById: session.user.id,
     },
@@ -93,7 +91,6 @@ export async function updateSightseeing(
       longitude: data.longitude ?? null,
       contactPhone: data.contactPhone || null,
       tourSummary: data.tourSummary || null,
-      price: data.price ?? null,
       activityTypes: { set: activityTypeIds.map((id) => ({ id })) },
     },
   });

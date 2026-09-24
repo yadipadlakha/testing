@@ -56,7 +56,6 @@ export default async function EditSightseeingPage({
           longitude: activity.longitude ?? "",
           contactPhone: activity.contactPhone ?? "",
           tourSummary: activity.tourSummary ?? "",
-          price: activity.price ?? "",
         }}
       />
 

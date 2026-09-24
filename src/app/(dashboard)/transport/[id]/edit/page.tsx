@@ -41,8 +41,6 @@ export default async function EditVehiclePage({ params }: { params: Promise<{ id
           title: vehicle.title,
           location: vehicle.location ?? "",
           packagesStarting: vehicle.packagesStarting ?? "",
-          pricePerKm: vehicle.pricePerKm ?? "",
-          pricePerHour: vehicle.pricePerHour ?? "",
           recommendedDriver: vehicle.recommendedDriver ?? "",
           amenities: vehicle.amenities,
         }}

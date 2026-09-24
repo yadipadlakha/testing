@@ -26,8 +26,6 @@ const vehicleSchema = z.object({
   title: z.string().min(1, "Title is required"),
   location: z.string().optional(),
   packagesStarting: z.string().optional(),
-  pricePerKm: z.preprocess(emptyToUndefined, z.coerce.number().int().min(0).optional()),
-  pricePerHour: z.preprocess(emptyToUndefined, z.coerce.number().int().min(0).optional()),
   recommendedDriver: z.string().optional(),
 });
 
@@ -53,8 +51,6 @@ export async function createVehicle(_prevState: ActionState, formData: FormData)
       title: data.title,
       location: data.location || undefined,
       packagesStarting: data.packagesStarting || undefined,
-      pricePerKm: data.pricePerKm,
-      pricePerHour: data.pricePerHour,
       recommendedDriver: data.recommendedDriver || undefined,
       amenities: parseListField(formData, "amenities"),
       createdById: session.user.id,
@@ -88,8 +84,6 @@ export async function updateVehicle(
       title: data.title,
       location: data.location || null,
       packagesStarting: data.packagesStarting || null,
-      pricePerKm: data.pricePerKm ?? null,
-      pricePerHour: data.pricePerHour ?? null,
       recommendedDriver: data.recommendedDriver || null,
       amenities: parseListField(formData, "amenities"),
     },

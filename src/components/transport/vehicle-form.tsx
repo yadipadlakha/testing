@@ -19,8 +19,6 @@ type VehicleFormValues = {
   title?: string;
   location?: string;
   packagesStarting?: string;
-  pricePerKm?: number | "";
-  pricePerHour?: number | "";
   recommendedDriver?: string;
   amenities?: string[];
 };
@@ -126,15 +124,6 @@ export function VehicleForm({
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="recommendedDriver">Recommended Driver</Label>
             <Input id="recommendedDriver" name="recommendedDriver" defaultValue={v.recommendedDriver} />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="pricePerKm">Price (Per Kilometer)</Label>
-            <Input id="pricePerKm" name="pricePerKm" type="number" min={0} defaultValue={v.pricePerKm} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="pricePerHour">Price (Per Hour)</Label>
-            <Input id="pricePerHour" name="pricePerHour" type="number" min={0} defaultValue={v.pricePerHour} />
           </div>
 
           <div className="flex flex-col gap-1.5 sm:col-span-2 lg:col-span-3">

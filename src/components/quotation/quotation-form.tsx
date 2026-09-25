@@ -15,7 +15,11 @@ import { computeQuotationTotals } from "@/lib/quotation";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { HotelBookingSection } from "@/components/quotation/hotel-booking-section";
+import { ActivityBookingSection } from "@/components/quotation/activity-booking-section";
+import { TransportBookingSection } from "@/components/quotation/transport-booking-section";
 import type { HotelBookingDetails } from "@/lib/hotel-booking";
+import type { ActivityBookingDetails, ActivityRateBand } from "@/lib/activity-booking";
+import type { TransportBookingDetails } from "@/lib/transport-booking";
 import type { QuotationItemCategory } from "@prisma/client";
 
 type ItemDraft = {
@@ -28,15 +32,17 @@ type ItemDraft = {
 };
 
 type HotelCatalogEntry = { id: string; name: string; destination: string; address: string | null; currency: string; pricePerNight: number };
-type TransportCatalogEntry = { id: string; label: string; unitPrice: number; quantity: number };
-type SightseeingCatalogEntry = {
+type ActivityCatalogEntry = { id: string; name: string; city: string; rates: ActivityRateBand[]; flatPrice: number | null };
+type TransportVehicleCatalogEntry = {
   id: string;
-  name: string;
-  city: string;
-  adultRate: number | null;
-  childRate: number | null;
-  flatPrice: number | null;
+  title: string;
+  vehicleType: string;
+  subType: string;
+  acType: string;
+  seats: number | null;
 };
+type TransportRouteCatalogEntry = { id: string; name: string; actualDistanceKm: number | null };
+type TransportRoutePricingCatalogEntry = { vehicleId: string; routeId: string; totalPrice: number | null };
 
 type Section = "overview" | "hotels" | "transport" | "activities" | "expenses" | "guide" | "other" | "totals";
 
@@ -80,7 +86,13 @@ export function QuotationForm({
     termsAndConditions?: string;
     items?: ItemDraft[];
   };
-  catalog: { hotels: HotelCatalogEntry[]; transport: TransportCatalogEntry[]; sightseeing: SightseeingCatalogEntry[] };
+  catalog: {
+    hotels: HotelCatalogEntry[];
+    activities: ActivityCatalogEntry[];
+    transportVehicles: TransportVehicleCatalogEntry[];
+    transportRoutes: TransportRouteCatalogEntry[];
+    transportRoutePricing: TransportRoutePricingCatalogEntry[];
+  };
 }) {
   const action =
     mode === "edit" && quotationId ? updateQuotation.bind(null, quotationId) : createQuotation.bind(null, enquiryId!);
@@ -118,26 +130,12 @@ export function QuotationForm({
     addItem("HOTEL", description, 1, unitPrice, details);
   }
 
-  function addTransport(id: string) {
-    const entry = catalog.transport.find((t) => t.id === id);
-    if (!entry) return;
-    addItem("TRANSPORT", entry.label, entry.quantity, entry.unitPrice);
+  function addActivityBooking(description: string, unitPrice: number, details: ActivityBookingDetails) {
+    addItem("SIGHTSEEING", description, 1, unitPrice, details);
   }
 
-  function addSightseeing(id: string) {
-    const entry = catalog.sightseeing.find((s) => s.id === id);
-    if (!entry) return;
-    if (entry.adultRate == null && entry.childRate == null) {
-      const pax = trip.adults + trip.children;
-      addItem("SIGHTSEEING", `${entry.name} (${entry.city}) — flat rate`, pax || 1, entry.flatPrice ?? 0);
-      return;
-    }
-    if (entry.adultRate != null && trip.adults > 0) {
-      addItem("SIGHTSEEING", `${entry.name} (${entry.city}) — Adult`, trip.adults, entry.adultRate);
-    }
-    if (entry.childRate != null && trip.children > 0) {
-      addItem("SIGHTSEEING", `${entry.name} (${entry.city}) — Child`, trip.children, entry.childRate);
-    }
+  function addTransportBooking(description: string, unitPrice: number, details: TransportBookingDetails) {
+    addItem("TRANSPORT", description, 1, unitPrice, details);
   }
 
   return (
@@ -255,29 +253,32 @@ export function QuotationForm({
           </div>
 
           <div className={section === "transport" ? "" : "hidden"}>
-            <ServiceSection
-              title="Transport"
-              addLabel="Add transport"
-              options={catalog.transport.map((t) => ({ id: t.id, label: t.label }))}
-              onAdd={addTransport}
-              items={items.filter((i) => i.category === "TRANSPORT")}
+            <TransportBookingSection
+              items={items.filter((i): i is ItemDraft & { category: "TRANSPORT" } => i.category === "TRANSPORT")}
               currency={currency}
+              travelDateIso={trip.travelDateIso}
+              durationDays={trip.durationDays}
+              vehicles={catalog.transportVehicles}
+              routes={catalog.transportRoutes}
+              routePricing={catalog.transportRoutePricing}
+              onAddItem={addTransportBooking}
               onUpdateItem={updateItem}
               onRemoveItem={removeItem}
             />
           </div>
 
           <div className={section === "activities" ? "" : "hidden"}>
-            <ServiceSection
-              title="Activities"
-              addLabel="Add activity"
-              options={catalog.sightseeing.map((s) => ({ id: s.id, label: `${s.name} (${s.city})` }))}
-              onAdd={addSightseeing}
-              items={items.filter((i) => i.category === "SIGHTSEEING")}
+            <ActivityBookingSection
+              items={items.filter((i): i is ItemDraft & { category: "SIGHTSEEING" } => i.category === "SIGHTSEEING")}
               currency={currency}
+              travelTo={trip.travelTo}
+              travelDateIso={trip.travelDateIso}
+              tripAdults={trip.adults}
+              tripChildren={trip.children}
+              activities={catalog.activities}
+              onAddItem={addActivityBooking}
               onUpdateItem={updateItem}
               onRemoveItem={removeItem}
-              helperText="Adult/child pricing and quantities are filled in automatically from this enquiry's traveller count."
             />
           </div>
 
@@ -394,66 +395,6 @@ export function QuotationForm({
         <SubmitButton>{mode === "edit" ? "Save changes" : "Create quotation"}</SubmitButton>
       </div>
     </form>
-  );
-}
-
-function ServiceSection({
-  title,
-  addLabel,
-  options,
-  onAdd,
-  items,
-  currency,
-  onUpdateItem,
-  onRemoveItem,
-  helperText,
-}: {
-  title: string;
-  addLabel: string;
-  options: { id: string; label: string }[];
-  onAdd: (id: string) => void;
-  items: ItemDraft[];
-  currency: string;
-  onUpdateItem: (id: string, patch: Partial<ItemDraft>) => void;
-  onRemoveItem: (id: string) => void;
-  helperText?: string;
-}) {
-  const [selected, setSelected] = useState("");
-  const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
-
-  return (
-    <Card>
-      <CardHeader className="flex-row items-center justify-between">
-        <CardTitle>{title}</CardTitle>
-        <span className="text-sm font-medium text-foreground">Subtotal: {formatCurrency(subtotal, currency)}</span>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        {helperText ? <p className="text-xs text-muted-foreground">{helperText}</p> : null}
-        <div className="flex gap-2">
-          <Select value={selected} onChange={(e) => setSelected(e.target.value)} className="flex-1">
-            <option value="">-- Select {title.toLowerCase()} --</option>
-            {options.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.label}
-              </option>
-            ))}
-          </Select>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={!selected}
-            onClick={() => {
-              onAdd(selected);
-              setSelected("");
-            }}
-          >
-            <Plus className="h-4 w-4" /> {addLabel}
-          </Button>
-        </div>
-
-        <ItemsTable items={items} currency={currency} onUpdate={onUpdateItem} onRemove={onRemoveItem} />
-      </CardContent>
-    </Card>
   );
 }
 

@@ -12,9 +12,9 @@ import { CURRENCIES, formatDate } from "@/lib/enquiry";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
-  HOTEL_BOOKING_STATUSES,
+  BOOKING_STATUSES,
   splitCities,
-  hotelMatchesCity,
+  matchesCity,
   addDays,
   nightsBetween,
   datesInRange,
@@ -22,7 +22,7 @@ import {
   defaultExtraPrices,
   computeHotelBookingTotals,
   type HotelBookingDetails,
-  type HotelBookingStatus,
+  type BookingStatus,
 } from "@/lib/hotel-booking";
 
 const NO_SPINNER = "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
@@ -112,7 +112,7 @@ export function HotelBookingEditor({
   const cities = useMemo(() => splitCities(travelTo), [travelTo]);
   const hotelOptions = useMemo(() => {
     if (!draft.city) return hotels;
-    const filtered = hotels.filter((h) => hotelMatchesCity(h.destination, draft.city));
+    const filtered = hotels.filter((h) => matchesCity(h.destination, draft.city));
     return filtered.length > 0 ? filtered : hotels;
   }, [hotels, draft.city]);
 
@@ -335,9 +335,9 @@ export function HotelBookingEditor({
                 <Select
                   id="hotelStatus"
                   value={draft.status}
-                  onChange={(e) => patch({ status: e.target.value as HotelBookingStatus })}
+                  onChange={(e) => patch({ status: e.target.value as BookingStatus })}
                 >
-                  {HOTEL_BOOKING_STATUSES.map((s) => (
+                  {BOOKING_STATUSES.map((s) => (
                     <option key={s.value} value={s.value}>
                       {s.label}
                     </option>

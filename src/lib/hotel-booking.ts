@@ -1,6 +1,6 @@
-export type HotelBookingStatus = "AVAILABLE" | "ON_REQUEST" | "NOT_AVAILABLE" | "CONFIRMED";
+export type BookingStatus = "AVAILABLE" | "ON_REQUEST" | "NOT_AVAILABLE" | "CONFIRMED";
 
-export const HOTEL_BOOKING_STATUSES: { value: HotelBookingStatus; label: string }[] = [
+export const BOOKING_STATUSES: { value: BookingStatus; label: string }[] = [
   { value: "AVAILABLE", label: "Available" },
   { value: "ON_REQUEST", label: "On Request" },
   { value: "NOT_AVAILABLE", label: "Not Available" },
@@ -15,7 +15,7 @@ export type HotelBookingDetails = {
   alternateHotelId: string | null;
   alternateHotelName: string | null;
   currency: string;
-  status: HotelBookingStatus;
+  status: BookingStatus;
   confirmationNumber: string;
   specialRequests: string;
   rateMode: "INVENTORY" | "MANUAL";
@@ -49,7 +49,7 @@ export function splitCities(travelTo: string): string[] {
   return cities.length > 0 ? cities : [travelTo.trim()].filter(Boolean);
 }
 
-export function hotelMatchesCity(destination: string, city: string): boolean {
+export function matchesCity(destination: string, city: string): boolean {
   const d = destination.toLowerCase();
   const c = city.toLowerCase();
   return d.includes(c) || c.includes(d);

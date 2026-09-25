@@ -6,43 +6,51 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/format";
 import { formatDate } from "@/lib/enquiry";
-import { BOOKING_STATUSES, type HotelBookingDetails } from "@/lib/hotel-booking";
-import { HotelBookingEditor } from "./hotel-booking-editor";
+import { type TransportBookingDetails } from "@/lib/transport-booking";
+import { TransportBookingEditor } from "./transport-booking-editor";
 
-type HotelItemDraft = {
+type TransportItemDraft = {
   id: string;
-  category: "HOTEL";
+  category: "TRANSPORT";
   description: string;
   quantity: number;
   unitPrice: number;
   details?: unknown;
 };
 
-type HotelOption = { id: string; name: string; destination: string; address: string | null; currency: string };
+type TransportVehicleOption = {
+  id: string;
+  title: string;
+  vehicleType: string;
+  subType: string;
+  acType: string;
+  seats: number | null;
+};
 
-export function HotelBookingSection({
+type TransportRouteOption = { id: string; name: string; actualDistanceKm: number | null };
+type RoutePricingOption = { vehicleId: string; routeId: string; totalPrice: number | null };
+
+export function TransportBookingSection({
   items,
   currency,
-  travelTo,
   travelDateIso,
   durationDays,
-  tripAdults,
-  tripChildren,
-  hotels,
+  vehicles,
+  routes,
+  routePricing,
   onAddItem,
   onUpdateItem,
   onRemoveItem,
 }: {
-  items: HotelItemDraft[];
+  items: TransportItemDraft[];
   currency: string;
-  travelTo: string;
   travelDateIso: string;
   durationDays: number;
-  tripAdults: number;
-  tripChildren: number;
-  hotels: HotelOption[];
-  onAddItem: (description: string, unitPrice: number, details: HotelBookingDetails) => void;
-  onUpdateItem: (id: string, patch: Partial<HotelItemDraft>) => void;
+  vehicles: TransportVehicleOption[];
+  routes: TransportRouteOption[];
+  routePricing: RoutePricingOption[];
+  onAddItem: (description: string, unitPrice: number, details: TransportBookingDetails) => void;
+  onUpdateItem: (id: string, patch: Partial<TransportItemDraft>) => void;
   onRemoveItem: (id: string) => void;
 }) {
   const [adding, setAdding] = useState(false);
@@ -52,15 +60,15 @@ export function HotelBookingSection({
 
   if (adding || editingId) {
     const editingItem = editingId ? items.find((i) => i.id === editingId) : null;
-    const initial = (editingItem?.details as HotelBookingDetails | undefined) ?? null;
+    const initial = (editingItem?.details as TransportBookingDetails | undefined) ?? null;
     return (
-      <HotelBookingEditor
-        travelTo={travelTo}
+      <TransportBookingEditor
         travelDateIso={travelDateIso}
         durationDays={durationDays}
-        tripAdults={tripAdults}
-        tripChildren={tripChildren}
-        hotels={hotels}
+        currency={currency}
+        vehicles={vehicles}
+        routes={routes}
+        routePricing={routePricing}
         initial={initial}
         onCancel={() => {
           setAdding(false);
@@ -82,21 +90,20 @@ export function HotelBookingSection({
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between">
-        <CardTitle>Hotels</CardTitle>
+        <CardTitle>Transport</CardTitle>
         <span className="text-sm font-medium text-foreground">Subtotal: {formatCurrency(subtotal, currency)}</span>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <Button type="button" variant="outline" size="sm" className="self-start" onClick={() => setAdding(true)}>
-          <Plus className="h-3.5 w-3.5" /> Add Hotel Booking
+          <Plus className="h-3.5 w-3.5" /> Add Transport Booking
         </Button>
 
         {items.length === 0 ? (
-          <p className="py-4 text-center text-sm text-muted-foreground">No hotel bookings yet.</p>
+          <p className="py-4 text-center text-sm text-muted-foreground">No transport bookings yet.</p>
         ) : (
           <div className="flex flex-col gap-2">
             {items.map((item) => {
-              const details = item.details as HotelBookingDetails | undefined;
-              const statusLabel = details ? BOOKING_STATUSES.find((s) => s.value === details.status)?.label : null;
+              const details = item.details as TransportBookingDetails | undefined;
               return (
                 <div
                   key={item.id}
@@ -104,10 +111,10 @@ export function HotelBookingSection({
                 >
                   <div>
                     <p className="text-sm font-medium text-foreground">{item.description}</p>
-                    {details ? (
+                    {details && details.legs.length > 0 ? (
                       <p className="text-xs text-muted-foreground">
-                        {formatDate(details.checkIn)} – {formatDate(details.checkOut)}
-                        {statusLabel ? ` · ${statusLabel}` : ""}
+                        {formatDate(details.legs[0].date)} – {formatDate(details.legs[details.legs.length - 1].date)}
+                        {details.acType ? ` · ${details.acType}` : ""}
                       </p>
                     ) : null}
                   </div>
@@ -116,11 +123,11 @@ export function HotelBookingSection({
                       {formatCurrency(item.unitPrice * item.quantity, currency)}
                     </span>
                     {details ? (
-                      <Button type="button" variant="outline" size="sm" onClick={() => setEditingId(item.id)}>
+                      <Button type="button" variant="outline" size="sm" aria-label="Edit" onClick={() => setEditingId(item.id)}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
                     ) : null}
-                    <Button type="button" variant="destructive" size="icon-sm" onClick={() => onRemoveItem(item.id)}>
+                    <Button type="button" variant="destructive" size="icon-sm" aria-label="Remove" onClick={() => onRemoveItem(item.id)}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>

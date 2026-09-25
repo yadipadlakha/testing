@@ -3,8 +3,6 @@ import { requireModuleAccess } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { QuotationForm } from "@/components/quotation/quotation-form";
 import { formatEnquiryNumber, formatDate, toDateInputValue } from "@/lib/enquiry";
-import { findRateForDate } from "@/lib/sightseeing";
-import { buildTransportCatalog } from "@/lib/transport";
 
 export default async function NewQuotationPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireModuleAccess("ENQUIRY");
@@ -14,13 +12,14 @@ export default async function NewQuotationPage({ params }: { params: Promise<{ i
   if (!enquiry) notFound();
   if (session.user.role !== "ADMIN" && enquiry.allocatedToId !== session.user.id) notFound();
 
-  const [hotels, sightseeing, transport] = await Promise.all([
+  const [hotels, sightseeing, transport, transportRoutes] = await Promise.all([
     prisma.hotel.findMany({ orderBy: { name: "asc" } }),
     prisma.sightseeing.findMany({ include: { rates: true }, orderBy: { name: "asc" } }),
     prisma.transport.findMany({
-      include: { routePricing: { include: { route: true } } },
+      include: { routePricing: true },
       orderBy: { title: "asc" },
     }),
+    prisma.transportRoute.findMany({ orderBy: { name: "asc" } }),
   ]);
 
   return (
@@ -55,18 +54,40 @@ export default async function NewQuotationPage({ params }: { params: Promise<{ i
             currency: h.currency,
             pricePerNight: h.pricePerNight ?? 0,
           })),
-          transport: buildTransportCatalog(transport, enquiry.durationDays),
-          sightseeing: sightseeing.map((s) => {
-            const rate = findRateForDate(s.rates, enquiry.travelDate);
-            return {
-              id: s.id,
-              name: s.name,
-              city: s.city,
-              adultRate: rate?.adultRate ?? null,
-              childRate: rate?.childRate ?? null,
-              flatPrice: s.price ?? null,
-            };
-          }),
+          activities: sightseeing.map((s) => ({
+            id: s.id,
+            name: s.name,
+            city: s.city,
+            flatPrice: s.price ?? null,
+            rates: s.rates.map((r) => ({
+              startDate: toDateInputValue(r.startDate),
+              endDate: toDateInputValue(r.endDate),
+              daysOfWeek: r.daysOfWeek,
+              adultRate: r.adultRate ?? null,
+              childRate: r.childRate ?? null,
+              infantRate: r.infantRate ?? null,
+            })),
+          })),
+          transportVehicles: transport.map((t) => ({
+            id: t.id,
+            title: t.title,
+            vehicleType: t.vehicleType,
+            subType: t.subType ?? "",
+            acType: t.acType,
+            seats: t.seats,
+          })),
+          transportRoutes: transportRoutes.map((r) => ({
+            id: r.id,
+            name: r.name,
+            actualDistanceKm: r.actualDistanceKm,
+          })),
+          transportRoutePricing: transport.flatMap((t) =>
+            t.routePricing.map((p) => ({
+              vehicleId: t.id,
+              routeId: p.routeId,
+              totalPrice: p.totalPrice ?? null,
+            })),
+          ),
         }}
       />
     </div>

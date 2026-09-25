@@ -6,43 +6,42 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/format";
 import { formatDate } from "@/lib/enquiry";
-import { BOOKING_STATUSES, type HotelBookingDetails } from "@/lib/hotel-booking";
-import { HotelBookingEditor } from "./hotel-booking-editor";
+import { BOOKING_STATUSES } from "@/lib/hotel-booking";
+import { type ActivityBookingDetails, type ActivityRateBand } from "@/lib/activity-booking";
+import { ActivityBookingEditor } from "./activity-booking-editor";
 
-type HotelItemDraft = {
+type ActivityItemDraft = {
   id: string;
-  category: "HOTEL";
+  category: "SIGHTSEEING";
   description: string;
   quantity: number;
   unitPrice: number;
   details?: unknown;
 };
 
-type HotelOption = { id: string; name: string; destination: string; address: string | null; currency: string };
+type ActivityOption = { id: string; name: string; city: string; rates: ActivityRateBand[]; flatPrice: number | null };
 
-export function HotelBookingSection({
+export function ActivityBookingSection({
   items,
   currency,
   travelTo,
   travelDateIso,
-  durationDays,
   tripAdults,
   tripChildren,
-  hotels,
+  activities,
   onAddItem,
   onUpdateItem,
   onRemoveItem,
 }: {
-  items: HotelItemDraft[];
+  items: ActivityItemDraft[];
   currency: string;
   travelTo: string;
   travelDateIso: string;
-  durationDays: number;
   tripAdults: number;
   tripChildren: number;
-  hotels: HotelOption[];
-  onAddItem: (description: string, unitPrice: number, details: HotelBookingDetails) => void;
-  onUpdateItem: (id: string, patch: Partial<HotelItemDraft>) => void;
+  activities: ActivityOption[];
+  onAddItem: (description: string, unitPrice: number, details: ActivityBookingDetails) => void;
+  onUpdateItem: (id: string, patch: Partial<ActivityItemDraft>) => void;
   onRemoveItem: (id: string) => void;
 }) {
   const [adding, setAdding] = useState(false);
@@ -52,15 +51,14 @@ export function HotelBookingSection({
 
   if (adding || editingId) {
     const editingItem = editingId ? items.find((i) => i.id === editingId) : null;
-    const initial = (editingItem?.details as HotelBookingDetails | undefined) ?? null;
+    const initial = (editingItem?.details as ActivityBookingDetails | undefined) ?? null;
     return (
-      <HotelBookingEditor
+      <ActivityBookingEditor
         travelTo={travelTo}
         travelDateIso={travelDateIso}
-        durationDays={durationDays}
         tripAdults={tripAdults}
         tripChildren={tripChildren}
-        hotels={hotels}
+        activities={activities}
         initial={initial}
         onCancel={() => {
           setAdding(false);
@@ -82,20 +80,20 @@ export function HotelBookingSection({
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between">
-        <CardTitle>Hotels</CardTitle>
+        <CardTitle>Activities</CardTitle>
         <span className="text-sm font-medium text-foreground">Subtotal: {formatCurrency(subtotal, currency)}</span>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <Button type="button" variant="outline" size="sm" className="self-start" onClick={() => setAdding(true)}>
-          <Plus className="h-3.5 w-3.5" /> Add Hotel Booking
+          <Plus className="h-3.5 w-3.5" /> Add Activity Booking
         </Button>
 
         {items.length === 0 ? (
-          <p className="py-4 text-center text-sm text-muted-foreground">No hotel bookings yet.</p>
+          <p className="py-4 text-center text-sm text-muted-foreground">No activity bookings yet.</p>
         ) : (
           <div className="flex flex-col gap-2">
             {items.map((item) => {
-              const details = item.details as HotelBookingDetails | undefined;
+              const details = item.details as ActivityBookingDetails | undefined;
               const statusLabel = details ? BOOKING_STATUSES.find((s) => s.value === details.status)?.label : null;
               return (
                 <div
@@ -106,7 +104,7 @@ export function HotelBookingSection({
                     <p className="text-sm font-medium text-foreground">{item.description}</p>
                     {details ? (
                       <p className="text-xs text-muted-foreground">
-                        {formatDate(details.checkIn)} – {formatDate(details.checkOut)}
+                        {formatDate(details.activityDate)}
                         {statusLabel ? ` · ${statusLabel}` : ""}
                       </p>
                     ) : null}
@@ -116,11 +114,11 @@ export function HotelBookingSection({
                       {formatCurrency(item.unitPrice * item.quantity, currency)}
                     </span>
                     {details ? (
-                      <Button type="button" variant="outline" size="sm" onClick={() => setEditingId(item.id)}>
+                      <Button type="button" variant="outline" size="sm" aria-label="Edit" onClick={() => setEditingId(item.id)}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
                     ) : null}
-                    <Button type="button" variant="destructive" size="icon-sm" onClick={() => onRemoveItem(item.id)}>
+                    <Button type="button" variant="destructive" size="icon-sm" aria-label="Remove" onClick={() => onRemoveItem(item.id)}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>

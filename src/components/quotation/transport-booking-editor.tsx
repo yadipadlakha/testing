@@ -8,14 +8,14 @@ import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/format";
-import { cn } from "@/lib/utils";
 import { VEHICLE_TYPES, AC_TYPES } from "@/lib/transport";
 import {
   buildDefaultLegs,
-  legTotal,
+  computeRouteCost,
   totalTransportCost,
   type TransportBookingDetails,
   type TransportLeg,
+  type RoutePricing,
 } from "@/lib/transport-booking";
 
 const NO_SPINNER =
@@ -32,7 +32,7 @@ type TransportVehicleOption = {
 
 type TransportRouteOption = { id: string; name: string; actualDistanceKm: number | null };
 
-type RoutePricingOption = { vehicleId: string; routeId: string; totalPrice: number | null };
+type RoutePricingOption = RoutePricing & { vehicleId: string; routeId: string };
 
 function emptyDraft(startDate: string, durationDays: number): TransportBookingDetails {
   return {
@@ -44,6 +44,12 @@ function emptyDraft(startDate: string, durationDays: number): TransportBookingDe
     seats: null,
     legs: buildDefaultLegs(startDate, durationDays),
   };
+}
+
+// Older saved bookings stored per-leg mileage/rate/extraCost instead of a single cost.
+function normalizeLeg(leg: TransportLeg & { rate?: number; extraCost?: number }): TransportLeg {
+  if (leg.cost != null) return leg;
+  return { ...leg, cost: (leg.rate ?? 0) + (leg.extraCost ?? 0) };
 }
 
 export function TransportBookingEditor({
@@ -67,9 +73,10 @@ export function TransportBookingEditor({
   onCancel: () => void;
   onSave: (details: TransportBookingDetails, description: string, unitPrice: number) => void;
 }) {
-  const [draft, setDraft] = useState<TransportBookingDetails>(
-    () => initial ?? emptyDraft(travelDateIso, durationDays),
-  );
+  const [draft, setDraft] = useState<TransportBookingDetails>(() => {
+    if (!initial) return emptyDraft(travelDateIso, durationDays);
+    return { ...initial, legs: initial.legs.map(normalizeLeg) };
+  });
 
   function patch(fields: Partial<TransportBookingDetails>) {
     setDraft((prev) => ({ ...prev, ...fields }));
@@ -92,7 +99,20 @@ export function TransportBookingEditor({
       subType: vehicle.subType,
       acType: vehicle.acType || "AC",
       seats: vehicle.seats,
+      legs: draft.legs.map((leg) => ({
+        ...leg,
+        cost: leg.routeId ? computeRouteCost(findPricing(vehicle.id, leg.routeId), findRoute(leg.routeId)?.actualDistanceKm ?? null) : leg.cost,
+      })),
     });
+  }
+
+  function findRoute(routeId: string | null) {
+    return routes.find((r) => r.id === routeId) ?? null;
+  }
+
+  function findPricing(vehicleId: string | null, routeId: string | null): RoutePricing | null {
+    if (!vehicleId || !routeId) return null;
+    return routePricing.find((p) => p.vehicleId === vehicleId && p.routeId === routeId) ?? null;
   }
 
   function updateLeg(id: string, fields: Partial<TransportLeg>) {
@@ -100,13 +120,12 @@ export function TransportBookingEditor({
   }
 
   function selectRoute(legId: string, routeId: string) {
-    const route = routes.find((r) => r.id === routeId);
-    const pricing = draft.vehicleId ? routePricing.find((p) => p.vehicleId === draft.vehicleId && p.routeId === routeId) : null;
+    const route = findRoute(routeId);
+    const pricing = findPricing(draft.vehicleId, routeId);
     updateLeg(legId, {
       routeId: routeId || null,
       routeName: route?.name ?? "",
-      mileageKm: route?.actualDistanceKm ?? 0,
-      rate: pricing?.totalPrice ?? 0,
+      cost: computeRouteCost(pricing, route?.actualDistanceKm ?? null),
     });
   }
 
@@ -117,15 +136,7 @@ export function TransportBookingEditor({
     patch({
       legs: [
         ...draft.legs,
-        {
-          id: crypto.randomUUID(),
-          routeId: null,
-          routeName: "",
-          date: d.toISOString().slice(0, 10),
-          mileageKm: 0,
-          rate: 0,
-          extraCost: 0,
-        },
+        { id: crypto.randomUUID(), routeId: null, routeName: "", date: d.toISOString().slice(0, 10), cost: 0 },
       ],
     });
   }
@@ -216,12 +227,12 @@ export function TransportBookingEditor({
           </div>
           <div className="flex flex-col gap-3">
             {draft.legs.map((leg, index) => (
-              <div key={leg.id} className="flex gap-3 rounded-md border border-border p-3">
+              <div key={leg.id} className="flex items-end gap-3 rounded-md border border-border p-3">
                 <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-foreground">
                   {index + 1}
                 </div>
-                <div className="grid flex-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
-                  <div className="flex flex-col gap-1.5 lg:col-span-2">
+                <div className="grid flex-1 gap-3 sm:grid-cols-3">
+                  <div className="flex flex-col gap-1.5">
                     <Label htmlFor={`route-${leg.id}`}>Select Route</Label>
                     <Select id={`route-${leg.id}`} value={leg.routeId ?? ""} onChange={(e) => selectRoute(leg.id, e.target.value)}>
                       <option value="">-- Select Route --</option>
@@ -237,40 +248,15 @@ export function TransportBookingEditor({
                     <Input id={`date-${leg.id}`} type="date" value={leg.date} onChange={(e) => updateLeg(leg.id, { date: e.target.value })} />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor={`mileage-${leg.id}`}>Mileage (km)</Label>
+                    <Label htmlFor={`cost-${leg.id}`}>Cost</Label>
                     <Input
-                      id={`mileage-${leg.id}`}
+                      id={`cost-${leg.id}`}
                       type="number"
                       min={0}
-                      value={leg.mileageKm}
-                      onChange={(e) => updateLeg(leg.id, { mileageKm: Number(e.target.value) || 0 })}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor={`rate-${leg.id}`}>Rate</Label>
-                    <Input
-                      id={`rate-${leg.id}`}
-                      type="number"
-                      min={0}
-                      value={leg.rate}
-                      onChange={(e) => updateLeg(leg.id, { rate: Number(e.target.value) || 0 })}
+                      value={leg.cost}
+                      onChange={(e) => updateLeg(leg.id, { cost: Number(e.target.value) || 0 })}
                       className={NO_SPINNER}
                     />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor={`extra-${leg.id}`}>Extra Cost</Label>
-                    <Input
-                      id={`extra-${leg.id}`}
-                      type="number"
-                      min={0}
-                      value={leg.extraCost}
-                      onChange={(e) => updateLeg(leg.id, { extraCost: Number(e.target.value) || 0 })}
-                      className={NO_SPINNER}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <Label>Total Cost</Label>
-                    <Input value={formatCurrency(legTotal(leg), currency)} disabled className={cn("bg-muted", NO_SPINNER)} />
                   </div>
                 </div>
                 {index > 0 ? (
@@ -279,7 +265,7 @@ export function TransportBookingEditor({
                     variant="destructive"
                     size="icon-sm"
                     aria-label="Remove day"
-                    className="shrink-0 self-start"
+                    className="shrink-0"
                     onClick={() => removeLeg(leg.id)}
                   >
                     <Trash2 className="h-3.5 w-3.5" />

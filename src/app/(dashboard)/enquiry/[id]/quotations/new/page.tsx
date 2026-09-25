@@ -85,6 +85,10 @@ export default async function NewQuotationPage({ params }: { params: Promise<{ i
             t.routePricing.map((p) => ({
               vehicleId: t.id,
               routeId: p.routeId,
+              pricePerKm: p.pricePerKm ?? null,
+              nightCharge: p.nightCharge ?? null,
+              tollTax: p.tollTax ?? null,
+              driverAllowance: p.driverAllowance ?? null,
               totalPrice: p.totalPrice ?? null,
             })),
           ),

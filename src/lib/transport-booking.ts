@@ -5,9 +5,7 @@ export type TransportLeg = {
   routeId: string | null;
   routeName: string;
   date: string;
-  mileageKm: number;
-  rate: number;
-  extraCost: number;
+  cost: number;
 };
 
 export type TransportBookingDetails = {
@@ -20,20 +18,33 @@ export type TransportBookingDetails = {
   legs: TransportLeg[];
 };
 
+export type RoutePricing = {
+  pricePerKm: number | null;
+  nightCharge: number | null;
+  tollTax: number | null;
+  driverAllowance: number | null;
+  totalPrice: number | null;
+};
+
 export function buildDefaultLegs(startDate: string, count: number): TransportLeg[] {
   return Array.from({ length: Math.max(1, count) }, (_, i) => ({
     id: crypto.randomUUID(),
     routeId: null,
     routeName: "",
     date: addDays(startDate, i),
-    mileageKm: 0,
-    rate: 0,
-    extraCost: 0,
+    cost: 0,
   }));
 }
 
+export function computeRouteCost(pricing: RoutePricing | null, distanceKm: number | null): number {
+  if (!pricing) return 0;
+  if (pricing.totalPrice != null) return pricing.totalPrice;
+  const distanceCost = pricing.pricePerKm != null && distanceKm != null ? pricing.pricePerKm * distanceKm : 0;
+  return distanceCost + (pricing.nightCharge ?? 0) + (pricing.tollTax ?? 0) + (pricing.driverAllowance ?? 0);
+}
+
 export function legTotal(leg: TransportLeg): number {
-  return leg.rate + leg.extraCost;
+  return leg.cost;
 }
 
 export function totalTransportCost(legs: TransportLeg[]): number {

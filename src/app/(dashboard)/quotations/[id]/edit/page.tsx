@@ -103,6 +103,10 @@ export default async function EditQuotationPage({ params }: { params: Promise<{ 
             t.routePricing.map((p) => ({
               vehicleId: t.id,
               routeId: p.routeId,
+              pricePerKm: p.pricePerKm ?? null,
+              nightCharge: p.nightCharge ?? null,
+              tollTax: p.tollTax ?? null,
+              driverAllowance: p.driverAllowance ?? null,
               totalPrice: p.totalPrice ?? null,
             })),
           ),

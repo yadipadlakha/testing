@@ -19,7 +19,7 @@ import { ActivityBookingSection } from "@/components/quotation/activity-booking-
 import { TransportBookingSection } from "@/components/quotation/transport-booking-section";
 import type { HotelBookingDetails } from "@/lib/hotel-booking";
 import type { ActivityBookingDetails, ActivityRateBand } from "@/lib/activity-booking";
-import type { TransportBookingDetails } from "@/lib/transport-booking";
+import type { TransportBookingDetails, RoutePricing } from "@/lib/transport-booking";
 import type { QuotationItemCategory } from "@prisma/client";
 
 type ItemDraft = {
@@ -42,7 +42,7 @@ type TransportVehicleCatalogEntry = {
   seats: number | null;
 };
 type TransportRouteCatalogEntry = { id: string; name: string; actualDistanceKm: number | null };
-type TransportRoutePricingCatalogEntry = { vehicleId: string; routeId: string; totalPrice: number | null };
+type TransportRoutePricingCatalogEntry = RoutePricing & { vehicleId: string; routeId: string };
 
 type Section = "overview" | "hotels" | "transport" | "activities" | "expenses" | "guide" | "other" | "totals";
 

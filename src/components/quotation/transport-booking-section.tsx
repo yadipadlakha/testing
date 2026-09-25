@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/format";
 import { formatDate } from "@/lib/enquiry";
-import { type TransportBookingDetails } from "@/lib/transport-booking";
+import { type TransportBookingDetails, type RoutePricing } from "@/lib/transport-booking";
 import { TransportBookingEditor } from "./transport-booking-editor";
 
 type TransportItemDraft = {
@@ -28,7 +28,7 @@ type TransportVehicleOption = {
 };
 
 type TransportRouteOption = { id: string; name: string; actualDistanceKm: number | null };
-type RoutePricingOption = { vehicleId: string; routeId: string; totalPrice: number | null };
+type RoutePricingOption = RoutePricing & { vehicleId: string; routeId: string };
 
 export function TransportBookingSection({
   items,

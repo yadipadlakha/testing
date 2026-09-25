@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PrintButton } from "@/components/quotation/print-button";
 import { Logo } from "@/components/logo";
-import { formatQuotationNumber, computeQuotationTotals, QUOTATION_CATEGORY_LABELS } from "@/lib/quotation";
+import { formatQuotationNumber, computeQuotationTotals, buildPrintableLineItems, QUOTATION_CATEGORY_LABELS } from "@/lib/quotation";
 import { formatCurrency } from "@/lib/format";
 import { formatDate, formatEnquiryNumber } from "@/lib/enquiry";
 
@@ -34,6 +34,7 @@ export default async function QuotationViewPage({ params }: { params: Promise<{ 
     quotation.discount,
     quotation.taxPercent,
   );
+  const printableItems = buildPrintableLineItems(quotation.items);
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
@@ -104,14 +105,14 @@ export default async function QuotationViewPage({ params }: { params: Promise<{ 
               </tr>
             </thead>
             <tbody>
-              {quotation.items.map((item) => (
-                <tr key={item.id} className="border-b border-border/60">
+              {printableItems.map((item, index) => (
+                <tr key={index} className="border-b border-border/60">
                   <td className="py-2 text-muted-foreground">{QUOTATION_CATEGORY_LABELS[item.category]}</td>
                   <td className="py-2 text-foreground">{item.description}</td>
                   <td className="py-2 text-right text-foreground">{item.quantity}</td>
                   <td className="py-2 text-right text-foreground">{formatCurrency(item.unitPrice, quotation.currency)}</td>
                   <td className="py-2 text-right font-medium text-foreground">
-                    {formatCurrency(item.quantity * item.unitPrice, quotation.currency)}
+                    {formatCurrency(item.total, quotation.currency)}
                   </td>
                 </tr>
               ))}

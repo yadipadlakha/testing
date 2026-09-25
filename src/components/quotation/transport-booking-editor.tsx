@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, CopyPlus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -141,6 +141,15 @@ export function TransportBookingEditor({
     });
   }
 
+  function insertLegAfter(afterId: string) {
+    const index = draft.legs.findIndex((leg) => leg.id === afterId);
+    if (index === -1) return;
+    const afterLeg = draft.legs[index];
+    const newLeg: TransportLeg = { id: crypto.randomUUID(), routeId: null, routeName: "", date: afterLeg.date, cost: 0 };
+    const legs = [...draft.legs.slice(0, index + 1), newLeg, ...draft.legs.slice(index + 1)];
+    patch({ legs });
+  }
+
   function removeLeg(id: string) {
     patch({ legs: draft.legs.filter((leg) => leg.id !== id) });
   }
@@ -259,18 +268,29 @@ export function TransportBookingEditor({
                     />
                   </div>
                 </div>
-                {index > 0 ? (
+                <div className="flex shrink-0 gap-1.5">
                   <Button
                     type="button"
-                    variant="destructive"
+                    variant="outline"
                     size="icon-sm"
-                    aria-label="Remove day"
-                    className="shrink-0"
-                    onClick={() => removeLeg(leg.id)}
+                    aria-label="Add another route for this day"
+                    title="Add another route for this day"
+                    onClick={() => insertLegAfter(leg.id)}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <CopyPlus className="h-3.5 w-3.5" />
                   </Button>
-                ) : null}
+                  {draft.legs.length > 1 ? (
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon-sm"
+                      aria-label="Remove day"
+                      onClick={() => removeLeg(leg.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  ) : null}
+                </div>
               </div>
             ))}
           </div>

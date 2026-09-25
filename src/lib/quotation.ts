@@ -30,124 +30,79 @@ export function formatQuotationNumber(quotationNumber: number) {
   return `QTN-${String(quotationNumber).padStart(5, "0")}`;
 }
 
-export type PrintableLineItem = {
-  category: QuotationItemCategory;
-  description: string;
-  quantity: number;
-  unitPrice: number;
+export type PaxSummaryRow = {
+  label: "Adult" | "Child" | "Infant";
+  pax: number;
+  rate: number;
   total: number;
 };
 
 /**
- * Expands a Hotel/Activity booking's single stored line item into one row per
- * passenger type (and extra bed usage) so the printed quotation shows
- * per-adult/per-child pricing and extra-bed charges transparently, instead of
- * one opaque lump sum. Other categories pass through unchanged.
+ * Builds the "Total Package Summary" — cost split by pax type — for the
+ * printed quotation. Adult/child-specific costs (activity rates, hotel extra
+ * beds) go straight to that pax type; costs that aren't tied to a specific
+ * passenger (room base rate, transport, additional charges, other services)
+ * are split evenly per head across adults and children. The whole thing is
+ * then scaled so Adult total + Child total + Infant total always equals the
+ * quotation's real total, markup/discount/tax included.
  */
-export function buildPrintableLineItems(
-  items: { category: QuotationItemCategory; description: string; quantity: number; unitPrice: number; details: unknown }[],
-): PrintableLineItem[] {
-  const rows: PrintableLineItem[] = [];
+export function computePaxSummary(
+  items: { category: QuotationItemCategory; quantity: number; unitPrice: number; details: unknown }[],
+  pax: { adults: number; children: number },
+  quotationTotal: number,
+): PaxSummaryRow[] {
+  let adultSpecific = 0;
+  let childSpecific = 0;
+  let infantSpecific = 0;
+  let shared = 0;
+  let infantPax = 0;
+
   for (const item of items) {
+    const itemTotal = item.quantity * item.unitPrice;
     if (item.category === "HOTEL" && item.details) {
-      rows.push(...expandHotelItem(item.details as HotelBookingDetails, item.description));
+      const d = item.details as HotelBookingDetails;
+      const nights = nightsBetween(d.checkIn, d.checkOut);
+      const adultPart = d.extraBedAdultQty * d.extraBedAdultPrice * nights;
+      const childPart = (d.extraBedChildQty * d.extraBedChildPrice + d.noBedChildQty * d.noBedChildPrice) * nights;
+      const infantPart = d.infantQty * d.infantPrice * nights;
+      adultSpecific += adultPart;
+      childSpecific += childPart;
+      infantSpecific += infantPart;
+      shared += itemTotal - adultPart - childPart - infantPart;
+      infantPax = Math.max(infantPax, d.infantQty);
     } else if (item.category === "SIGHTSEEING" && item.details) {
-      rows.push(...expandActivityItem(item.details as ActivityBookingDetails, item.description));
+      const d = item.details as ActivityBookingDetails;
+      adultSpecific += rowTotal(d.adultRate, d.adultQty, d.adultAdditionalCost);
+      childSpecific += rowTotal(d.childRate, d.childQty, d.childAdditionalCost);
+      infantSpecific += rowTotal(d.infantRate, d.infantQty, d.infantAdditionalCost);
+      infantPax = Math.max(infantPax, d.infantQty);
     } else {
-      rows.push({
-        category: item.category,
-        description: item.description,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        total: item.quantity * item.unitPrice,
-      });
+      shared += itemTotal;
     }
   }
-  return rows;
-}
 
-function expandHotelItem(details: HotelBookingDetails, fallbackDescription: string): PrintableLineItem[] {
-  const nights = nightsBetween(details.checkIn, details.checkOut);
-  const rows: PrintableLineItem[] = [];
+  const sharedHeadcount = pax.adults + pax.children;
+  const adultShared = sharedHeadcount > 0 ? (shared * pax.adults) / sharedHeadcount : 0;
+  const childShared = sharedHeadcount > 0 ? (shared * pax.children) / sharedHeadcount : 0;
 
-  const roomLabel = [details.roomCategory, details.roomType].filter(Boolean).join(" · ");
-  rows.push({
-    category: "HOTEL",
-    description: `${details.hotelName || fallbackDescription}${roomLabel ? ` — ${roomLabel}` : ""}${details.mealPlan ? `, ${details.mealPlan}` : ""}, ${nights} night${nights !== 1 ? "s" : ""} × ${details.numberOfRooms} room${details.numberOfRooms !== 1 ? "s" : ""}`,
-    quantity: details.numberOfRooms,
-    unitPrice: details.numberOfRooms > 0 ? details.roomSubTotal / details.numberOfRooms : details.roomSubTotal,
-    total: details.roomSubTotal,
-  });
+  const rawAdult = adultSpecific + adultShared;
+  const rawChild = childSpecific + childShared;
+  const rawInfant = infantSpecific;
+  const rawSum = rawAdult + rawChild + rawInfant;
+  const scale = rawSum > 0 ? quotationTotal / rawSum : 1;
 
-  if (details.extraBedAdultQty > 0) {
-    rows.push({
-      category: "HOTEL",
-      description: "Extra Bed — Adult",
-      quantity: details.extraBedAdultQty,
-      unitPrice: details.extraBedAdultPrice * nights,
-      total: details.extraBedAdultQty * details.extraBedAdultPrice * nights,
-    });
+  const rows: PaxSummaryRow[] = [];
+  if (pax.adults > 0) {
+    const total = rawAdult * scale;
+    rows.push({ label: "Adult", pax: pax.adults, rate: total / pax.adults, total });
   }
-  if (details.extraBedChildQty > 0) {
-    rows.push({
-      category: "HOTEL",
-      description: "Extra Bed — Child",
-      quantity: details.extraBedChildQty,
-      unitPrice: details.extraBedChildPrice * nights,
-      total: details.extraBedChildQty * details.extraBedChildPrice * nights,
-    });
+  if (pax.children > 0) {
+    const total = rawChild * scale;
+    rows.push({ label: "Child", pax: pax.children, rate: total / pax.children, total });
   }
-  if (details.noBedChildQty > 0) {
-    rows.push({
-      category: "HOTEL",
-      description: "Child (No Extra Bed)",
-      quantity: details.noBedChildQty,
-      unitPrice: details.noBedChildPrice * nights,
-      total: details.noBedChildQty * details.noBedChildPrice * nights,
-    });
+  if (infantPax > 0) {
+    const total = rawInfant * scale;
+    rows.push({ label: "Infant", pax: infantPax, rate: total / infantPax, total });
   }
-  if (details.infantQty > 0) {
-    rows.push({
-      category: "HOTEL",
-      description: "Infant",
-      quantity: details.infantQty,
-      unitPrice: details.infantPrice * nights,
-      total: details.infantQty * details.infantPrice * nights,
-    });
-  }
-  if (details.additionalChargesAmount > 0) {
-    rows.push({
-      category: "HOTEL",
-      description: details.additionalChargesDescription || "Additional Charges",
-      quantity: 1,
-      unitPrice: details.additionalChargesAmount,
-      total: details.additionalChargesAmount,
-    });
-  }
-
-  return rows;
-}
-
-function expandActivityItem(details: ActivityBookingDetails, fallbackDescription: string): PrintableLineItem[] {
-  const base = details.activityName || fallbackDescription;
-  const rows: PrintableLineItem[] = [];
-
-  if (details.adultQty > 0) {
-    const total = rowTotal(details.adultRate, details.adultQty, details.adultAdditionalCost);
-    rows.push({ category: "SIGHTSEEING", description: `${base} — Adult`, quantity: details.adultQty, unitPrice: total / details.adultQty, total });
-  }
-  if (details.childQty > 0) {
-    const total = rowTotal(details.childRate, details.childQty, details.childAdditionalCost);
-    rows.push({ category: "SIGHTSEEING", description: `${base} — Child`, quantity: details.childQty, unitPrice: total / details.childQty, total });
-  }
-  if (details.infantQty > 0) {
-    const total = rowTotal(details.infantRate, details.infantQty, details.infantAdditionalCost);
-    rows.push({ category: "SIGHTSEEING", description: `${base} — Infant`, quantity: details.infantQty, unitPrice: total / details.infantQty, total });
-  }
-
-  if (rows.length === 0) {
-    rows.push({ category: "SIGHTSEEING", description: base, quantity: 1, unitPrice: details.grandTotal, total: details.grandTotal });
-  }
-
   return rows;
 }

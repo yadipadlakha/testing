@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PrintButton } from "@/components/quotation/print-button";
 import { Logo } from "@/components/logo";
-import { formatQuotationNumber, computeQuotationTotals, buildPrintableLineItems, QUOTATION_CATEGORY_LABELS } from "@/lib/quotation";
+import { formatQuotationNumber, computeQuotationTotals, computePaxSummary, QUOTATION_CATEGORY_LABELS } from "@/lib/quotation";
 import { formatCurrency } from "@/lib/format";
 import { formatDate, formatEnquiryNumber } from "@/lib/enquiry";
 
@@ -34,7 +34,11 @@ export default async function QuotationViewPage({ params }: { params: Promise<{ 
     quotation.discount,
     quotation.taxPercent,
   );
-  const printableItems = buildPrintableLineItems(quotation.items);
+  const paxSummary = computePaxSummary(
+    quotation.items,
+    { adults: quotation.enquiry.adults, children: quotation.enquiry.children },
+    totals.total,
+  );
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
@@ -105,14 +109,14 @@ export default async function QuotationViewPage({ params }: { params: Promise<{ 
               </tr>
             </thead>
             <tbody>
-              {printableItems.map((item, index) => (
-                <tr key={index} className="border-b border-border/60">
+              {quotation.items.map((item) => (
+                <tr key={item.id} className="border-b border-border/60">
                   <td className="py-2 text-muted-foreground">{QUOTATION_CATEGORY_LABELS[item.category]}</td>
                   <td className="py-2 text-foreground">{item.description}</td>
                   <td className="py-2 text-right text-foreground">{item.quantity}</td>
                   <td className="py-2 text-right text-foreground">{formatCurrency(item.unitPrice, quotation.currency)}</td>
                   <td className="py-2 text-right font-medium text-foreground">
-                    {formatCurrency(item.total, quotation.currency)}
+                    {formatCurrency(item.quantity * item.unitPrice, quotation.currency)}
                   </td>
                 </tr>
               ))}
@@ -148,6 +152,48 @@ export default async function QuotationViewPage({ params }: { params: Promise<{ 
             </div>
           </div>
         </div>
+
+        {paxSummary.length > 0 ? (
+          <div className="py-6">
+            <div className="overflow-hidden rounded-md border border-border">
+              <div className="bg-secondary px-4 py-2 text-sm font-semibold tracking-wide text-secondary-foreground uppercase">
+                Total Package Summary
+              </div>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/40 text-left text-xs font-medium text-muted-foreground">
+                    <th className="px-4 py-2">Description</th>
+                    <th className="px-4 py-2 text-right">Pax</th>
+                    <th className="px-4 py-2 text-right">Rate</th>
+                    <th className="px-4 py-2 text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paxSummary.map((row) => (
+                    <tr key={row.label} className="border-b border-border/60">
+                      <td className="px-4 py-2 text-foreground">{row.label}</td>
+                      <td className="px-4 py-2 text-right text-foreground">{row.pax}</td>
+                      <td className="px-4 py-2 text-right text-foreground">{formatCurrency(row.rate, quotation.currency)}</td>
+                      <td className="px-4 py-2 text-right font-medium text-foreground">
+                        {formatCurrency(row.total, quotation.currency)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="flex flex-col gap-1 px-4 py-3 text-sm">
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Subtotal</span>
+                  <span>{formatCurrency(totals.total, quotation.currency)}</span>
+                </div>
+                <div className="flex justify-between text-base font-semibold text-foreground">
+                  <span>Final Package Cost</span>
+                  <span>{formatCurrency(totals.total, quotation.currency)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {quotation.termsAndConditions ? (
           <div className="border-t border-border pt-6">

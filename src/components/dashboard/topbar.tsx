@@ -45,7 +45,7 @@ export function Topbar({
             <p className="text-sm font-medium text-foreground">{name}</p>
             <p className="text-xs text-muted-foreground">{email}</p>
           </div>
-          <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+          <span className="rounded-full bg-gradient-to-br from-primary/15 to-accent/15 px-2.5 py-1 text-xs font-semibold text-primary">
             {role === "ADMIN" ? "Admin" : "Employee"}
           </span>
           <form action={signOutAction}>
@@ -65,8 +65,10 @@ export function Topbar({
               key={item.href}
               href={item.href}
               className={cn(
-                "flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-                active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
+                "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-150",
+                active
+                  ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25"
+                  : "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary",
               )}
             >
               <Icon className="h-3.5 w-3.5" />

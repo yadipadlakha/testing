@@ -57,11 +57,21 @@ export function Sidebar({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                  active ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted",
+                  "group relative flex items-center gap-3 overflow-hidden rounded-md px-3 py-2 text-sm font-medium transition-all duration-150",
+                  active
+                    ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25"
+                    : "text-foreground hover:translate-x-0.5 hover:bg-primary/8 hover:text-primary",
                 )}
               >
-                <Icon className="h-4 w-4 shrink-0" />
+                {active ? (
+                  <span className="absolute top-1/2 left-0 h-5 w-1 -translate-y-1/2 rounded-r-full bg-accent" />
+                ) : null}
+                <Icon
+                  className={cn(
+                    "h-4 w-4 shrink-0 transition-transform duration-150 group-hover:scale-110",
+                    active ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary",
+                  )}
+                />
                 <span className="flex-1">{item.label}</span>
               </Link>
             );
@@ -75,11 +85,21 @@ export function Sidebar({
             <Link
               href="/employees"
               className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                pathname.startsWith("/employees") ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted",
+                "group relative flex items-center gap-3 overflow-hidden rounded-md px-3 py-2 text-sm font-medium transition-all duration-150",
+                pathname.startsWith("/employees")
+                  ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25"
+                  : "text-foreground hover:translate-x-0.5 hover:bg-primary/8 hover:text-primary",
               )}
             >
-              <Users className="h-4 w-4 shrink-0" />
+              {pathname.startsWith("/employees") ? (
+                <span className="absolute top-1/2 left-0 h-5 w-1 -translate-y-1/2 rounded-r-full bg-accent" />
+              ) : null}
+              <Users
+                className={cn(
+                  "h-4 w-4 shrink-0 transition-transform duration-150 group-hover:scale-110",
+                  pathname.startsWith("/employees") ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary",
+                )}
+              />
               <span className="flex-1">Employees</span>
             </Link>
           </>

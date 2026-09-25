@@ -99,7 +99,7 @@ export default async function DashboardPage() {
                 <Link
                   key={enquiry.id}
                   href={`/enquiry/${enquiry.id}`}
-                  className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between sm:rounded-md sm:px-2"
+                  className="flex flex-col gap-2 py-3 transition-colors duration-150 first:pt-0 last:pb-0 hover:bg-primary/5 sm:flex-row sm:items-center sm:justify-between sm:rounded-md sm:px-2"
                 >
                   <div className="flex items-center gap-3">
                     <Badge variant={STATUS_BADGE_VARIANT[enquiry.status]}>{STATUS_LABELS[enquiry.status]}</Badge>

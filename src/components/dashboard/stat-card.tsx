@@ -23,8 +23,13 @@ export function StatCard({
   };
 
   return (
-    <Card className="flex-row items-center gap-4 p-4">
-      <span className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-lg", accentClasses[accent ?? "primary"])}>
+    <Card className="group flex-row items-center gap-4 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/10">
+      <span
+        className={cn(
+          "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-105",
+          accentClasses[accent ?? "primary"],
+        )}
+      >
         <Icon className="h-5 w-5" />
       </span>
       <div>

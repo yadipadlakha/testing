@@ -135,6 +135,17 @@ terraform output -raw database_url   # save this — you'll paste it into Amplif
    still need to be set in step 6 (the build shell is where
    `amplify.yml` reads them from), this workaround is just why the app
    actually receives them at runtime too.
+
+   **Known flakiness**: confirmed via a filesystem diagnostic that the
+   compute Lambda unpacks the deployment into `/tmp/app` (not the usual
+   Lambda `/var/task`) at cold start, and that `.env.production.local`
+   correctly ends up there and gets loaded. However, one deployment in
+   testing still hit `MissingSecret` with no code change from the prior
+   (working) build — likely a one-off Amplify packaging hiccup during
+   that unpack step, not a flaw in the approach. **If `MissingSecret` or
+   a DB connection error appears after a deploy that previously worked,
+   push an empty commit (`git commit --allow-empty -m "Retry deploy"`)
+   to force a fresh build before assuming something is actually broken.**
 8. Once it succeeds, note the app's default URL
    (`https://main.<app-id>.amplifyapp.com`) — the app is live there
    immediately, independent of the custom domain below.

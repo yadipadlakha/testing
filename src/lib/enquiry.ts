@@ -1,4 +1,4 @@
-import type { EnquiryStatus, EnquiryType } from "@prisma/client";
+import type { EnquiryStatus, EnquiryType, Prisma } from "@prisma/client";
 import type { badgeVariants } from "@/components/ui/badge";
 import type { VariantProps } from "class-variance-authority";
 
@@ -86,4 +86,19 @@ export function formatDate(date: Date | string | null | undefined) {
 export function toDateInputValue(date: Date | string | null | undefined) {
   if (!date) return "";
   return new Date(date).toISOString().slice(0, 10);
+}
+
+type SessionLike = { user: { id: string; role: "ADMIN" | "EMPLOYEE" } };
+
+/** Enquiries are visible to admins, or to any user tagged in `allocatedUsers`. */
+export function enquiryScopeWhere(session: SessionLike): Prisma.EnquiryWhereInput {
+  if (session.user.role === "ADMIN") return {};
+  return { allocatedUsers: { some: { id: session.user.id } } };
+}
+
+export function canAccessEnquiry(
+  enquiry: { allocatedUsers: { id: string }[] },
+  session: SessionLike,
+): boolean {
+  return session.user.role === "ADMIN" || enquiry.allocatedUsers.some((u) => u.id === session.user.id);
 }

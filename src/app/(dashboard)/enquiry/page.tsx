@@ -14,6 +14,7 @@ import {
   TYPE_LABELS,
   formatEnquiryNumber,
   formatDate,
+  enquiryScopeWhere,
 } from "@/lib/enquiry";
 import type { EnquiryStatus, Prisma } from "@prisma/client";
 import { cn } from "@/lib/utils";
@@ -26,14 +27,13 @@ export default async function EnquiryListPage({
   searchParams: Promise<{ tab?: string; q?: string; page?: string }>;
 }) {
   const session = await requireModuleAccess("ENQUIRY");
-  const isAdmin = session.user.role === "ADMIN";
   const params = await searchParams;
 
   const tab = (ENQUIRY_STATUSES.includes(params.tab as EnquiryStatus) ? params.tab : "NEW_QUERY") as EnquiryStatus;
   const query = params.q?.trim() ?? "";
   const page = Math.max(1, Number(params.page) || 1);
 
-  const scope: Prisma.EnquiryWhereInput = isAdmin ? {} : { allocatedToId: session.user.id };
+  const scope = enquiryScopeWhere(session);
   const searchFilter: Prisma.EnquiryWhereInput = query
     ? {
         OR: [
@@ -49,7 +49,7 @@ export default async function EnquiryListPage({
     prisma.enquiry.groupBy({ by: ["status"], where: scope, _count: { _all: true } }),
     prisma.enquiry.findMany({
       where: { ...scope, status: tab, ...searchFilter },
-      include: { client: true, allocatedTo: true },
+      include: { client: true, allocatedUsers: true },
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
@@ -187,7 +187,11 @@ export default async function EnquiryListPage({
                 </div>
                 <div>
                   <p className="text-foreground">Allocated to</p>
-                  <p className="text-xs text-muted-foreground">{enquiry.allocatedTo?.name ?? "Unassigned"}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {enquiry.allocatedUsers.length > 0
+                      ? enquiry.allocatedUsers.map((u) => u.name).join(", ")
+                      : "Unassigned"}
+                  </p>
                 </div>
               </div>
             </Card>

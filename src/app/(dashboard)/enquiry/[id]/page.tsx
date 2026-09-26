@@ -29,6 +29,7 @@ import {
   TYPE_LABELS,
   formatEnquiryNumber,
   formatDate,
+  canAccessEnquiry,
 } from "@/lib/enquiry";
 
 export default async function EnquiryDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -39,14 +40,15 @@ export default async function EnquiryDetailPage({ params }: { params: Promise<{ 
     where: { id },
     include: {
       client: true,
-      allocatedTo: true,
+      allocatedUsers: true,
+      salesPerson: true,
       createdBy: true,
       quotations: { include: { items: true }, orderBy: { createdAt: "desc" } },
     },
   });
 
   if (!enquiry) notFound();
-  if (session.user.role !== "ADMIN" && enquiry.allocatedToId !== session.user.id) notFound();
+  if (!canAccessEnquiry(enquiry, session)) notFound();
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
@@ -145,7 +147,15 @@ export default async function EnquiryDetailPage({ params }: { params: Promise<{ 
           <p className="flex items-center gap-2 text-sm text-foreground">
             <Coins className="h-4 w-4 text-muted-foreground" /> {enquiry.currency}
           </p>
-          <p className="text-sm text-foreground">Allocated to {enquiry.allocatedTo?.name ?? "Unassigned"}</p>
+          {enquiry.salesPerson ? (
+            <p className="text-sm text-foreground">Sales Person: {enquiry.salesPerson.name}</p>
+          ) : null}
+          <p className="text-sm text-foreground">
+            Allocated to{" "}
+            {enquiry.allocatedUsers.length > 0
+              ? enquiry.allocatedUsers.map((u) => u.name).join(", ")
+              : "Unassigned"}
+          </p>
         </CardContent>
       </Card>
 

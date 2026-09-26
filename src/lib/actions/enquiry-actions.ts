@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireModuleAccess } from "@/lib/permissions";
+import { canAccessEnquiry } from "@/lib/enquiry";
 import type { ActionState } from "@/lib/actions/auth-actions";
 
 const emptyToUndefined = (val: unknown) => (val === "" ? undefined : val);
@@ -26,7 +27,7 @@ const enquirySchema = z.object({
   hotelCategory: z.preprocess(emptyToUndefined, z.coerce.number().int().min(3).max(5).optional()),
   currency: z.string().min(1, "Currency is required"),
   notes: z.string().optional(),
-  allocatedToId: z.string().optional(),
+  salesPersonId: z.string().optional(),
 });
 
 async function upsertClient(data: {
@@ -75,7 +76,8 @@ export async function createEnquiry(_prevState: ActionState, formData: FormData)
     state: data.clientState,
   });
 
-  const allocatedToId = session.user.role === "ADMIN" ? data.allocatedToId || session.user.id : session.user.id;
+  const allocatedUserIds =
+    session.user.role === "ADMIN" ? formData.getAll("allocatedUserIds").map(String) : [session.user.id];
 
   const enquiry = await prisma.enquiry.create({
     data: {
@@ -90,7 +92,8 @@ export async function createEnquiry(_prevState: ActionState, formData: FormData)
       hotelCategory: data.hotelCategory,
       currency: data.currency,
       notes: data.notes || undefined,
-      allocatedToId,
+      salesPersonId: data.salesPersonId || undefined,
+      allocatedUsers: { connect: allocatedUserIds.map((id) => ({ id })) },
       createdById: session.user.id,
     },
   });
@@ -106,9 +109,12 @@ export async function updateEnquiry(
 ): Promise<ActionState> {
   const session = await requireModuleAccess("ENQUIRY");
 
-  const existing = await prisma.enquiry.findUnique({ where: { id: enquiryId } });
+  const existing = await prisma.enquiry.findUnique({
+    where: { id: enquiryId },
+    include: { allocatedUsers: { select: { id: true } } },
+  });
   if (!existing) return { error: "Enquiry not found." };
-  if (session.user.role !== "ADMIN" && existing.allocatedToId !== session.user.id) {
+  if (!canAccessEnquiry(existing, session)) {
     return { error: "You don't have access to this enquiry." };
   }
 
@@ -127,9 +133,6 @@ export async function updateEnquiry(
     state: data.clientState,
   });
 
-  const allocatedToId =
-    session.user.role === "ADMIN" ? data.allocatedToId || existing.allocatedToId : existing.allocatedToId;
-
   await prisma.enquiry.update({
     where: { id: enquiryId },
     data: {
@@ -144,7 +147,10 @@ export async function updateEnquiry(
       hotelCategory: data.hotelCategory ?? null,
       currency: data.currency,
       notes: data.notes || undefined,
-      allocatedToId,
+      salesPersonId: data.salesPersonId || null,
+      ...(session.user.role === "ADMIN"
+        ? { allocatedUsers: { set: formData.getAll("allocatedUserIds").map((id) => ({ id: String(id) })) } }
+        : {}),
     },
   });
 
@@ -160,11 +166,12 @@ const statusSchema = z.object({
 export async function updateEnquiryStatus(enquiryId: string, formData: FormData) {
   const session = await requireModuleAccess("ENQUIRY");
 
-  const existing = await prisma.enquiry.findUnique({ where: { id: enquiryId } });
+  const existing = await prisma.enquiry.findUnique({
+    where: { id: enquiryId },
+    include: { allocatedUsers: { select: { id: true } } },
+  });
   if (!existing) return;
-  if (session.user.role !== "ADMIN" && existing.allocatedToId !== session.user.id) {
-    return;
-  }
+  if (!canAccessEnquiry(existing, session)) return;
 
   const parsed = statusSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return;
@@ -177,11 +184,12 @@ export async function updateEnquiryStatus(enquiryId: string, formData: FormData)
 export async function deleteEnquiry(enquiryId: string) {
   const session = await requireModuleAccess("ENQUIRY");
 
-  const existing = await prisma.enquiry.findUnique({ where: { id: enquiryId } });
+  const existing = await prisma.enquiry.findUnique({
+    where: { id: enquiryId },
+    include: { allocatedUsers: { select: { id: true } } },
+  });
   if (!existing) return;
-  if (session.user.role !== "ADMIN" && existing.allocatedToId !== session.user.id) {
-    return;
-  }
+  if (!canAccessEnquiry(existing, session)) return;
 
   await prisma.enquiry.delete({ where: { id: enquiryId } });
   revalidatePath("/enquiry");

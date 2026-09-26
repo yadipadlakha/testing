@@ -6,7 +6,14 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ENQUIRY_STATUSES, STATUS_LABELS, STATUS_BADGE_VARIANT, formatEnquiryNumber, formatDate } from "@/lib/enquiry";
+import {
+  ENQUIRY_STATUSES,
+  STATUS_LABELS,
+  STATUS_BADGE_VARIANT,
+  formatEnquiryNumber,
+  formatDate,
+  enquiryScopeWhere,
+} from "@/lib/enquiry";
 import type { EnquiryStatus } from "@prisma/client";
 
 const STATUS_ICONS: Record<EnquiryStatus, React.ComponentType<{ className?: string }>> = {
@@ -30,13 +37,13 @@ const STATUS_ACCENT: Record<EnquiryStatus, "blue" | "purple" | "amber" | "teal" 
 export default async function DashboardPage() {
   const session = await requireSession();
   const isAdmin = session.user.role === "ADMIN";
-  const scope = isAdmin ? {} : { allocatedToId: session.user.id };
+  const scope = enquiryScopeWhere(session);
 
   const [statusCounts, recentEnquiries, employeeCount] = await Promise.all([
     prisma.enquiry.groupBy({ by: ["status"], where: scope, _count: { _all: true } }),
     prisma.enquiry.findMany({
       where: scope,
-      include: { client: true, allocatedTo: true },
+      include: { client: true, allocatedUsers: true },
       orderBy: { createdAt: "desc" },
       take: 8,
     }),
@@ -113,7 +120,10 @@ export default async function DashboardPage() {
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Allocated to {enquiry.allocatedTo?.name ?? "Unassigned"}
+                    Allocated to{" "}
+                    {enquiry.allocatedUsers.length > 0
+                      ? enquiry.allocatedUsers.map((u) => u.name).join(", ")
+                      : "Unassigned"}
                   </p>
                 </Link>
               ))}

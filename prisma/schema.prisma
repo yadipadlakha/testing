@@ -55,20 +55,21 @@ model User {
   updatedAt    DateTime @updatedAt
 
   createdById String?
-  createdBy   User?  @relation("EmployeeCreator", fields: [createdById], references: [id])
-  employees   User[] @relation("EmployeeCreator")
+  createdBy   User?   @relation("EmployeeCreator", fields: [createdById], references: [id])
+  employees   User[]  @relation("EmployeeCreator")
 
   resetTokens PasswordResetToken[]
   permissions EmployeePermission[]
 
-  allocatedEnquiries Enquiry[] @relation("AllocatedEnquiries")
+  allocatedEnquiries Enquiry[] @relation("EnquiryAllocations")
   createdEnquiries   Enquiry[] @relation("CreatedEnquiries")
 
-  createdHotels          Hotel[]           @relation("CreatedHotels")
-  createdSightseeing     Sightseeing[]     @relation("CreatedSightseeing")
-  createdTransport       Transport[]       @relation("CreatedTransport")
-  createdTransportRoutes TransportRoute[]  @relation("CreatedTransportRoutes")
-  createdQuotations      Quotation[]       @relation("CreatedQuotations")
+  createdHotels          Hotel[]          @relation("CreatedHotels")
+  createdSightseeing     Sightseeing[]    @relation("CreatedSightseeing")
+  createdTransport       Transport[]      @relation("CreatedTransport")
+  createdTransportRoutes TransportRoute[] @relation("CreatedTransportRoutes")
+  createdQuotations      Quotation[]      @relation("CreatedQuotations")
+  createdSalesPersons    SalesPerson[]    @relation("CreatedSalesPersons")
 
   @@index([createdById])
 }
@@ -108,6 +109,25 @@ model Client {
   enquiries Enquiry[]
 }
 
+model SalesPerson {
+  id            String   @id @default(cuid())
+  name          String
+  contactNumber String
+  email         String?
+  city          String?
+  state         String?
+  country       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  createdById String
+  createdBy   User   @relation("CreatedSalesPersons", fields: [createdById], references: [id])
+
+  enquiries Enquiry[]
+
+  @@index([createdById])
+}
+
 model Enquiry {
   id            String        @id @default(cuid())
   enquiryNumber Int           @unique @default(autoincrement())
@@ -120,8 +140,8 @@ model Enquiry {
   travelTo     String
   travelDate   DateTime
   durationDays Int
-  adults       Int     @default(1)
-  children     Int     @default(0)
+  adults       Int      @default(1)
+  children     Int      @default(0)
   childrenAges String?
 
   hotelCategory Int?
@@ -129,8 +149,10 @@ model Enquiry {
 
   notes String?
 
-  allocatedToId String?
-  allocatedTo   User?   @relation("AllocatedEnquiries", fields: [allocatedToId], references: [id])
+  salesPersonId String?
+  salesPerson   SalesPerson? @relation(fields: [salesPersonId], references: [id])
+
+  allocatedUsers User[] @relation("EnquiryAllocations")
 
   createdById String
   createdBy   User   @relation("CreatedEnquiries", fields: [createdById], references: [id])
@@ -141,7 +163,7 @@ model Enquiry {
   quotations Quotation[]
 
   @@index([status])
-  @@index([allocatedToId])
+  @@index([salesPersonId])
   @@index([clientId])
 }
 
@@ -172,9 +194,9 @@ model Hotel {
 }
 
 model HotelSeason {
-  id        String @id @default(cuid())
+  id        String   @id @default(cuid())
   hotelId   String
-  hotel     Hotel  @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  hotel     Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
   name      String
   startDate DateTime
   endDate   DateTime
@@ -289,10 +311,10 @@ model SightseeingRate {
 }
 
 model Transport {
-  id                String  @id @default(cuid())
+  id                String   @id @default(cuid())
   vehicleType       String
   subType           String?
-  acType            String  @default("AC")
+  acType            String   @default("AC")
   seats             Int?
   vehicleNumber     String?
   tripTypes         String[]
@@ -336,9 +358,9 @@ model TransportRoute {
 }
 
 model TransportRoutePricing {
-  id          String @id @default(cuid())
+  id          String         @id @default(cuid())
   transportId String
-  transport   Transport @relation(fields: [transportId], references: [id], onDelete: Cascade)
+  transport   Transport      @relation(fields: [transportId], references: [id], onDelete: Cascade)
   routeId     String
   route       TransportRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
 
@@ -357,8 +379,8 @@ model TransportRoutePricing {
 }
 
 model Quotation {
-  id              String   @id @default(cuid())
-  quotationNumber Int      @unique @default(autoincrement())
+  id              String @id @default(cuid())
+  quotationNumber Int    @unique @default(autoincrement())
 
   enquiryId String
   enquiry   Enquiry @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
@@ -366,9 +388,9 @@ model Quotation {
   title              String
   currency           String
   validUntil         DateTime?
-  markupPercent      Int     @default(0)
-  discount           Int     @default(0)
-  taxPercent         Int     @default(0)
+  markupPercent      Int       @default(0)
+  discount           Int       @default(0)
+  taxPercent         Int       @default(0)
   termsAndConditions String?
 
   items QuotationItem[]

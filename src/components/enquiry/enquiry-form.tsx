@@ -28,7 +28,8 @@ type EnquiryFormValues = {
   hotelCategory?: number | "";
   currency?: string;
   notes?: string;
-  allocatedToId?: string;
+  salesPersonId?: string;
+  allocatedUserIds?: string[];
 };
 
 export function EnquiryForm({
@@ -36,17 +37,20 @@ export function EnquiryForm({
   enquiryId,
   defaultValues,
   employees,
+  salesPersons,
   isAdmin,
 }: {
   mode: "create" | "edit";
   enquiryId?: string;
   defaultValues?: EnquiryFormValues;
   employees: { id: string; name: string }[];
+  salesPersons: { id: string; name: string }[];
   isAdmin: boolean;
 }) {
   const action = mode === "edit" && enquiryId ? updateEnquiry.bind(null, enquiryId) : createEnquiry;
   const [state, formAction] = useActionState(action, undefined);
   const v = defaultValues ?? {};
+  const allocatedUserIds = v.allocatedUserIds ?? [];
 
   return (
     <form action={formAction} className="flex flex-col gap-6">
@@ -128,17 +132,41 @@ export function EnquiryForm({
               ))}
             </Select>
           </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="salesPersonId">Sales person</Label>
+            <Select id="salesPersonId" name="salesPersonId" defaultValue={v.salesPersonId ?? ""}>
+              <option value="">Not specified</option>
+              {salesPersons.map((person) => (
+                <option key={person.id} value={person.id}>
+                  {person.name}
+                </option>
+              ))}
+            </Select>
+          </div>
           {isAdmin ? (
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="allocatedToId">Allocated to</Label>
-              <Select id="allocatedToId" name="allocatedToId" defaultValue={v.allocatedToId ?? ""}>
-                <option value="">Unassigned</option>
-                {employees.map((employee) => (
-                  <option key={employee.id} value={employee.id}>
-                    {employee.name}
-                  </option>
-                ))}
-              </Select>
+            <div className="flex flex-col gap-1.5 sm:col-span-2">
+              <Label>Allocated to</Label>
+              <p className="text-xs text-muted-foreground">
+                Only the users checked here will be able to see this enquiry in their portal.
+              </p>
+              {employees.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No employees yet.</p>
+              ) : (
+                <div className="grid gap-2 rounded-md border border-input p-3 sm:grid-cols-2 md:grid-cols-3">
+                  {employees.map((employee) => (
+                    <label key={employee.id} className="flex items-center gap-2 text-sm text-foreground">
+                      <input
+                        type="checkbox"
+                        name="allocatedUserIds"
+                        value={employee.id}
+                        defaultChecked={allocatedUserIds.includes(employee.id)}
+                        className="h-3.5 w-3.5 accent-primary"
+                      />
+                      {employee.name}
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
           ) : null}
           <div className="flex flex-col gap-1.5 sm:col-span-2">

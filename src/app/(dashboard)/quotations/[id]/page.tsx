@@ -10,7 +10,7 @@ import { PrintButton } from "@/components/quotation/print-button";
 import { Logo } from "@/components/logo";
 import { formatQuotationNumber, computeQuotationTotals, computePaxSummary, QUOTATION_CATEGORY_LABELS } from "@/lib/quotation";
 import { formatCurrency } from "@/lib/format";
-import { formatDate, formatEnquiryNumber } from "@/lib/enquiry";
+import { formatDate, formatEnquiryNumber, canAccessEnquiry } from "@/lib/enquiry";
 
 export default async function QuotationViewPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireModuleAccess("ENQUIRY");
@@ -20,13 +20,13 @@ export default async function QuotationViewPage({ params }: { params: Promise<{ 
     where: { id },
     include: {
       items: { orderBy: { sortOrder: "asc" } },
-      enquiry: { include: { client: true } },
+      enquiry: { include: { client: true, allocatedUsers: { select: { id: true } } } },
       createdBy: true,
     },
   });
 
   if (!quotation) notFound();
-  if (session.user.role !== "ADMIN" && quotation.enquiry.allocatedToId !== session.user.id) notFound();
+  if (!canAccessEnquiry(quotation.enquiry, session)) notFound();
 
   const totals = computeQuotationTotals(
     quotation.items,

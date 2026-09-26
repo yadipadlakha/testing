@@ -2,15 +2,18 @@ import { notFound } from "next/navigation";
 import { requireModuleAccess } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { QuotationForm } from "@/components/quotation/quotation-form";
-import { formatEnquiryNumber, formatDate, toDateInputValue } from "@/lib/enquiry";
+import { formatEnquiryNumber, formatDate, toDateInputValue, canAccessEnquiry } from "@/lib/enquiry";
 
 export default async function NewQuotationPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireModuleAccess("ENQUIRY");
   const { id } = await params;
 
-  const enquiry = await prisma.enquiry.findUnique({ where: { id }, include: { client: true } });
+  const enquiry = await prisma.enquiry.findUnique({
+    where: { id },
+    include: { client: true, allocatedUsers: { select: { id: true } } },
+  });
   if (!enquiry) notFound();
-  if (session.user.role !== "ADMIN" && enquiry.allocatedToId !== session.user.id) notFound();
+  if (!canAccessEnquiry(enquiry, session)) notFound();
 
   const [hotels, sightseeing, transport, transportRoutes] = await Promise.all([
     prisma.hotel.findMany({ orderBy: { name: "asc" } }),

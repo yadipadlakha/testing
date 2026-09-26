@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireModuleAccess } from "@/lib/permissions";
+import { canAccessEnquiry } from "@/lib/enquiry";
 import type { ActionState } from "@/lib/actions/auth-actions";
 import type { Prisma } from "@prisma/client";
 
@@ -45,9 +46,12 @@ export async function createQuotation(
 ): Promise<ActionState> {
   const session = await requireModuleAccess("ENQUIRY");
 
-  const enquiry = await prisma.enquiry.findUnique({ where: { id: enquiryId } });
+  const enquiry = await prisma.enquiry.findUnique({
+    where: { id: enquiryId },
+    include: { allocatedUsers: { select: { id: true } } },
+  });
   if (!enquiry) return { error: "Enquiry not found." };
-  if (session.user.role !== "ADMIN" && enquiry.allocatedToId !== session.user.id) {
+  if (!canAccessEnquiry(enquiry, session)) {
     return { error: "You don't have access to this enquiry." };
   }
 
@@ -92,9 +96,12 @@ export async function updateQuotation(
 ): Promise<ActionState> {
   const session = await requireModuleAccess("ENQUIRY");
 
-  const existing = await prisma.quotation.findUnique({ where: { id: quotationId }, include: { enquiry: true } });
+  const existing = await prisma.quotation.findUnique({
+    where: { id: quotationId },
+    include: { enquiry: { include: { allocatedUsers: { select: { id: true } } } } },
+  });
   if (!existing) return { error: "Quotation not found." };
-  if (session.user.role !== "ADMIN" && existing.enquiry.allocatedToId !== session.user.id) {
+  if (!canAccessEnquiry(existing.enquiry, session)) {
     return { error: "You don't have access to this quotation." };
   }
 
@@ -137,9 +144,12 @@ export async function updateQuotation(
 export async function deleteQuotation(quotationId: string) {
   const session = await requireModuleAccess("ENQUIRY");
 
-  const existing = await prisma.quotation.findUnique({ where: { id: quotationId }, include: { enquiry: true } });
+  const existing = await prisma.quotation.findUnique({
+    where: { id: quotationId },
+    include: { enquiry: { include: { allocatedUsers: { select: { id: true } } } } },
+  });
   if (!existing) return;
-  if (session.user.role !== "ADMIN" && existing.enquiry.allocatedToId !== session.user.id) return;
+  if (!canAccessEnquiry(existing.enquiry, session)) return;
 
   await prisma.quotation.delete({ where: { id: quotationId } });
   revalidatePath(`/enquiry/${existing.enquiryId}`);

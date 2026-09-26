@@ -87,7 +87,7 @@ async function main() {
           childrenAges: e.childrenAges,
           hotelCategory: e.hotelCategory,
           currency: e.currency,
-          allocatedToId: e.allocatedTo === "admin" ? admin.id : employee.id,
+          allocatedUsers: { connect: [{ id: e.allocatedTo === "admin" ? admin.id : employee.id }] },
           createdById: admin.id,
         },
       });

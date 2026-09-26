@@ -2,22 +2,26 @@ import { notFound } from "next/navigation";
 import { requireModuleAccess } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { EnquiryForm } from "@/components/enquiry/enquiry-form";
-import { toDateInputValue } from "@/lib/enquiry";
+import { toDateInputValue, canAccessEnquiry } from "@/lib/enquiry";
 
 export default async function EditEnquiryPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireModuleAccess("ENQUIRY");
   const { id } = await params;
   const isAdmin = session.user.role === "ADMIN";
 
-  const [enquiry, employees] = await Promise.all([
-    prisma.enquiry.findUnique({ where: { id }, include: { client: true } }),
+  const [enquiry, employees, salesPersons] = await Promise.all([
+    prisma.enquiry.findUnique({
+      where: { id },
+      include: { client: true, allocatedUsers: { select: { id: true } } },
+    }),
     isAdmin
       ? prisma.user.findMany({ where: { role: "EMPLOYEE" }, select: { id: true, name: true }, orderBy: { name: "asc" } })
       : Promise.resolve([]),
+    prisma.salesPerson.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
   if (!enquiry) notFound();
-  if (!isAdmin && enquiry.allocatedToId !== session.user.id) notFound();
+  if (!canAccessEnquiry(enquiry, session)) notFound();
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
@@ -30,6 +34,7 @@ export default async function EditEnquiryPage({ params }: { params: Promise<{ id
         enquiryId={enquiry.id}
         isAdmin={isAdmin}
         employees={employees}
+        salesPersons={salesPersons}
         defaultValues={{
           clientName: enquiry.client.name,
           clientPhone: enquiry.client.phone,
@@ -47,7 +52,8 @@ export default async function EditEnquiryPage({ params }: { params: Promise<{ id
           hotelCategory: enquiry.hotelCategory ?? "",
           currency: enquiry.currency,
           notes: enquiry.notes ?? "",
-          allocatedToId: enquiry.allocatedToId ?? "",
+          salesPersonId: enquiry.salesPersonId ?? "",
+          allocatedUserIds: enquiry.allocatedUsers.map((u) => u.id),
         }}
       />
     </div>

@@ -15,6 +15,15 @@ frontend:
         - npx prisma db push
     build:
       commands:
+        # Amplify's Console-configured env vars reach this build shell (that's
+        # why the `prisma db push` above works) but not the deployed SSR
+        # Lambda's own runtime process.env — confirmed by a live diagnostic
+        # that logged both as undefined at request time. Writing them to
+        # .env.production.local here means Next.js's own env loader picks
+        # them up at Lambda cold start instead: purely server-side, loaded
+        # from a plain file, never inlined into any JS bundle a browser could
+        # ever receive.
+        - printf 'AUTH_SECRET=%s\nDATABASE_URL=%s\n' "$AUTH_SECRET" "$DATABASE_URL" > .env.production.local
         - npm run build
   artifacts:
     baseDirectory: .next

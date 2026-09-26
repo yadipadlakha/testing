@@ -88,7 +88,12 @@ resource "aws_db_instance" "main" {
   parameter_group_name   = aws_db_parameter_group.postgres.name
   publicly_accessible    = var.db_publicly_accessible
 
-  backup_retention_period = 7
+  # Brand-new AWS accounts often carry a temporary Free Tier restriction
+  # capping this at 1 day (CreateDBInstance fails with
+  # FreeTierRestrictionError above that). Raise it back to 7+ once your
+  # account ages out of the restriction (usually after a bit of usage /
+  # billing history) — see DEPLOYMENT.md.
+  backup_retention_period = 1
   backup_window           = "03:00-04:00"
   maintenance_window      = "mon:04:30-mon:05:30"
 

@@ -176,6 +176,11 @@ edit `prisma/seed.ts` to seed your real admin instead before running it.
   (e.g. dropping a column). If the data model stabilizes, switching to real
   migrations (`prisma migrate dev` → commit migration files → `prisma
   migrate deploy` in `amplify.yml`) is a worthwhile upgrade.
+- **`backup_retention_period` is set to 1 day**, not the usual 7+. Brand-new
+  AWS accounts carry a temporary Free Tier restriction (`CreateDBInstance`
+  fails with `FreeTierRestrictionError` above 1 day) until the account ages
+  out of it — typically after some real usage/billing history. Bump it back
+  up in `infra/database.tf` once that restriction clears.
 - **RDS is publicly accessible by default** (`db_publicly_accessible =
   true`), locked to `db_allowed_cidr_blocks` (defaults to open,
   `0.0.0.0/0`) at the security-group level, with `rds.force_ssl` enabled so

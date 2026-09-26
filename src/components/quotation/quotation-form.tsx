@@ -1,8 +1,10 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Trash2, MapPin, CalendarDays, Users as UsersIcon } from "lucide-react";
 import { createQuotation, updateQuotation } from "@/lib/actions/quotation-actions";
+import { QuotationGeneratedAnimation } from "@/components/quotation/quotation-generated-animation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -98,6 +100,8 @@ export function QuotationForm({
     mode === "edit" && quotationId ? updateQuotation.bind(null, quotationId) : createQuotation.bind(null, enquiryId!);
   const [state, formAction] = useActionState(action, undefined);
   const v = defaultValues ?? {};
+  const router = useRouter();
+  const generatedQuotationId = mode === "create" ? state?.success : undefined;
 
   const [section, setSection] = useState<Section>("hotels");
   const [items, setItems] = useState<ItemDraft[]>(v.items ?? []);
@@ -394,6 +398,10 @@ export function QuotationForm({
       <div className="flex justify-end">
         <SubmitButton>{mode === "edit" ? "Save changes" : "Create quotation"}</SubmitButton>
       </div>
+
+      {generatedQuotationId ? (
+        <QuotationGeneratedAnimation onDone={() => router.push(`/quotations/${generatedQuotationId}`)} />
+      ) : null}
     </form>
   );
 }

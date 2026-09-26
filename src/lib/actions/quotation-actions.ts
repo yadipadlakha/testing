@@ -86,7 +86,9 @@ export async function createQuotation(
   });
 
   revalidatePath(`/enquiry/${enquiryId}`);
-  redirect(`/quotations/${quotation.id}`);
+  // No server-side redirect here: the form plays a short "Quotation Generated"
+  // animation on success, then navigates client-side once it finishes.
+  return { success: quotation.id };
 }
 
 export async function updateQuotation(

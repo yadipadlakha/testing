@@ -14,6 +14,8 @@ import { SubmitButton } from "@/components/submit-button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { CURRENCIES } from "@/lib/enquiry";
 import { computeQuotationTotals } from "@/lib/quotation";
+import { buildDayWiseItinerary } from "@/lib/itinerary";
+import { TourOverview } from "@/components/quotation/tour-overview";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { HotelBookingSection } from "@/components/quotation/hotel-booking-section";
@@ -129,6 +131,7 @@ export function QuotationForm({
   }
 
   const totals = computeQuotationTotals(items, markupPercent, discount, taxPercent);
+  const dayWiseItinerary = buildDayWiseItinerary(items, trip.travelDateIso, trip.durationDays);
 
   function addHotelBooking(description: string, unitPrice: number, details: HotelBookingDetails) {
     addItem("HOTEL", description, 1, unitPrice, details);
@@ -202,7 +205,7 @@ export function QuotationForm({
         </nav>
 
         <div className="min-w-0 flex-1">
-          <div className={section === "overview" ? "" : "hidden"}>
+          <div className={section === "overview" ? "flex flex-col gap-6" : "hidden"}>
             <Card>
               <CardHeader>
                 <CardTitle>Overview</CardTitle>
@@ -238,6 +241,8 @@ export function QuotationForm({
                 </div>
               </CardContent>
             </Card>
+
+            <TourOverview days={dayWiseItinerary} />
           </div>
 
           <div className={section === "hotels" ? "" : "hidden"}>

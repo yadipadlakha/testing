@@ -2,6 +2,23 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import fs from "fs";
+import path from "path";
+
+// TEMPORARY deploy diagnostic — remove once the runtime env var mystery is
+// resolved. Lists file/directory NAMES only, never file contents or any
+// secret value, to see what actually shipped in the deployed Lambda.
+try {
+  const cwd = process.cwd();
+  const cwdEntries = fs.readdirSync(cwd);
+  const dotenvPath = path.join(cwd, ".env.production.local");
+  const dotenvExists = fs.existsSync(dotenvPath);
+  console.log(
+    `[deploy-diagnostic-2] cwd: ${cwd}; cwdEntries: ${JSON.stringify(cwdEntries)}; dotenvExists: ${dotenvExists}`,
+  );
+} catch (e) {
+  console.log(`[deploy-diagnostic-2] failed: ${String(e)}`);
+}
 
 declare module "next-auth" {
   interface Session {

@@ -3,6 +3,13 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
+// TEMPORARY deploy diagnostic — remove once AUTH_SECRET is confirmed to
+// reach the Amplify SSR Lambda's runtime environment. Logs presence only,
+// never the actual values.
+console.log(
+  `[deploy-diagnostic] AUTH_SECRET present: ${Boolean(process.env.AUTH_SECRET)}, length: ${process.env.AUTH_SECRET?.length ?? 0}; DATABASE_URL present: ${Boolean(process.env.DATABASE_URL)}; NODE_ENV: ${process.env.NODE_ENV}`,
+);
+
 declare module "next-auth" {
   interface Session {
     user: {

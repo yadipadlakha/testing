@@ -122,6 +122,19 @@ terraform output -raw database_url   # save this — you'll paste it into Amplif
 7. Save and deploy. First build typically takes 3-6 minutes — watch it in
    the Console's build log. It will run `npm ci`, `npx prisma db push`,
    then `npm run build`.
+
+   **Why the env vars in step 6 alone aren't enough**: on this app's
+   Amplify SSR (Web Compute) setup, Console-configured environment
+   variables only populate the *build* shell — confirmed live by a runtime
+   diagnostic that logged both `AUTH_SECRET` and `DATABASE_URL` as
+   `undefined` inside the deployed Lambda at request time, even though
+   `prisma db push` (which reads `DATABASE_URL` during the build) worked
+   fine. `amplify.yml`'s build phase works around this by writing both
+   values to a `.env.production.local` file right before `next build`,
+   which Next.js's own env loader picks up at Lambda cold start — so they
+   still need to be set in step 6 (the build shell is where
+   `amplify.yml` reads them from), this workaround is just why the app
+   actually receives them at runtime too.
 8. Once it succeeds, note the app's default URL
    (`https://main.<app-id>.amplifyapp.com`) — the app is live there
    immediately, independent of the custom domain below.

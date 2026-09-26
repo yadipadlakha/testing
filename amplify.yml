@@ -4,6 +4,15 @@ frontend:
     preBuild:
       commands:
         - npm ci
+        # Keeps the production schema in sync with prisma/schema.prisma on
+        # every deploy. DATABASE_URL is set as an Amplify environment
+        # variable (Console → app → Hosting → Environment variables) —
+        # see DEPLOYMENT.md. It's a no-op once the schema already matches.
+        # Deliberately WITHOUT --accept-data-loss: a schema change that
+        # would drop data fails the build instead of silently deleting
+        # anything — run `prisma db push --accept-data-loss` by hand
+        # against DATABASE_URL when you actually intend that.
+        - npx prisma db push
     build:
       commands:
         - npm run build

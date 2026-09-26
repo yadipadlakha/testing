@@ -1,0 +1,16 @@
+image: node:22
+
+# CI-only quality gate: lint + type-check/build on every push and PR.
+# This does NOT deploy anything and needs no AWS credentials — the actual
+# deploy to production is triggered by AWS Amplify Hosting's own webhook,
+# connected directly to this repo (see DEPLOYMENT.md).
+pipelines:
+  default:
+    - step:
+        name: Lint & build
+        caches:
+          - node
+        script:
+          - npm ci
+          - npx eslint .
+          - npx next build

@@ -1,3 +1,7 @@
+locals {
+  database_url = "postgresql://${var.db_username}:${var.db_password}@${aws_db_instance.main.address}:${aws_db_instance.main.port}/${var.db_name}?sslmode=require"
+}
+
 data "aws_vpc" "default" {
   default = true
 }

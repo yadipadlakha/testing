@@ -3,7 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Module } from "@prisma/client";
-import { LayoutDashboard, Inbox, Contact, Building2, MapPinned, Bus, Users, BriefcaseBusiness } from "lucide-react";
+import {
+  LayoutDashboard,
+  Inbox,
+  Contact,
+  Building2,
+  MapPinned,
+  Bus,
+  Users,
+  BriefcaseBusiness,
+  KeyRound,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { signOutAction } from "@/lib/actions/auth-actions";
 import { Button } from "@/components/ui/button";
@@ -49,6 +59,12 @@ export function Topbar({
           <span className="rounded-full bg-gradient-to-br from-primary/15 to-accent/15 px-2.5 py-1 text-xs font-semibold text-primary">
             {role === "ADMIN" ? "Admin" : "Employee"}
           </span>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/account">
+              <KeyRound className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Change password</span>
+            </Link>
+          </Button>
           <form action={signOutAction}>
             <Button variant="outline" size="sm" type="submit">
               Sign out

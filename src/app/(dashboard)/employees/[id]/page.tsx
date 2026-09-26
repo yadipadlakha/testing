@@ -6,6 +6,7 @@ import { updateEmployeePermissions } from "@/lib/actions/employee-actions";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { SubmitButton } from "@/components/submit-button";
 import { ModuleCheckboxes } from "@/components/employees/module-checkboxes";
+import { ChangeEmployeePasswordForm } from "@/components/employees/change-employee-password-form";
 import { formatDate } from "@/lib/enquiry";
 
 export default async function EmployeeDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -47,6 +48,15 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
               <SubmitButton>Save permissions</SubmitButton>
             </div>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Change password</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ChangeEmployeePasswordForm employeeId={employee.id} />
         </CardContent>
       </Card>
     </div>

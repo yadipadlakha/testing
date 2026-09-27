@@ -143,6 +143,44 @@ export async function updateQuotation(
   redirect(`/quotations/${quotationId}`);
 }
 
+export async function duplicateQuotation(quotationId: string) {
+  const session = await requireModuleAccess("ENQUIRY");
+
+  const existing = await prisma.quotation.findUnique({
+    where: { id: quotationId },
+    include: { items: true, enquiry: { include: { allocatedUsers: { select: { id: true } } } } },
+  });
+  if (!existing) return;
+  if (!canAccessEnquiry(existing.enquiry, session)) return;
+
+  const copy = await prisma.quotation.create({
+    data: {
+      enquiryId: existing.enquiryId,
+      title: `${existing.title} (Copy)`,
+      currency: existing.currency,
+      validUntil: existing.validUntil,
+      markupPercent: existing.markupPercent,
+      discount: existing.discount,
+      taxPercent: existing.taxPercent,
+      termsAndConditions: existing.termsAndConditions,
+      createdById: session.user.id,
+      items: {
+        create: existing.items.map((item) => ({
+          category: item.category,
+          description: item.description,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          sortOrder: item.sortOrder,
+          details: item.details as Prisma.InputJsonValue | undefined,
+        })),
+      },
+    },
+  });
+
+  revalidatePath(`/enquiry/${existing.enquiryId}`);
+  redirect(`/quotations/${copy.id}/edit`);
+}
+
 export async function deleteQuotation(quotationId: string) {
   const session = await requireModuleAccess("ENQUIRY");
 

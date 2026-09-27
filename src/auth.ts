@@ -3,6 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { ensureRuntimeEnvLoaded } from "@/lib/runtime-env";
+import type { JWT } from "next-auth/jwt";
 
 ensureRuntimeEnvLoaded();
 
@@ -20,12 +21,17 @@ declare module "next-auth" {
   }
 }
 
-declare module "@auth/core/jwt" {
-  interface JWT {
-    id: string;
-    role: "ADMIN" | "EMPLOYEE";
-  }
-}
+// Not augmented via `declare module "next-auth/jwt"`: when @auth/core ends up
+// nested under next-auth's own node_modules (which npm does whenever this
+// project has its own top-level `nodemailer` dependency, since @auth/core
+// optionally peer-depends on an older nodemailer range), TypeScript's
+// `declare module` augmentation fails to resolve that subpath even though a
+// plain type import of the same specifier works fine. A local intersection
+// type sidesteps the issue entirely.
+type AppJwt = JWT & {
+  id: string;
+  role: "ADMIN" | "EMPLOYEE";
+};
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   // Required when self-hosting behind a reverse proxy or Docker's port
@@ -69,15 +75,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     jwt: ({ token, user }) => {
+      const appToken = token as AppJwt;
       if (user) {
-        token.id = user.id as string;
-        token.role = user.role;
+        appToken.id = user.id as string;
+        appToken.role = user.role;
       }
-      return token;
+      return appToken;
     },
     session: ({ session, token }) => {
-      session.user.id = token.id;
-      session.user.role = token.role;
+      const appToken = token as AppJwt;
+      session.user.id = appToken.id;
+      session.user.role = appToken.role;
       return session;
     },
   },

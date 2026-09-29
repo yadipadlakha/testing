@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireModuleAccess } from "@/lib/permissions";
 import { canAccessEnquiry } from "@/lib/enquiry";
+import { autoGenerateQuotation } from "@/lib/auto-quotation";
 import type { ActionState } from "@/lib/actions/auth-actions";
 
 const emptyToUndefined = (val: unknown) => (val === "" ? undefined : val);
@@ -99,6 +100,15 @@ export async function createEnquiry(_prevState: ActionState, formData: FormData)
   });
 
   revalidatePath("/enquiry");
+
+  // Best-effort convenience draft — never blocks enquiry creation if it fails
+  // or finds nothing to match.
+  try {
+    await autoGenerateQuotation(enquiry.id, session.user.id);
+  } catch (err) {
+    console.error("Auto-generate quotation failed for enquiry", enquiry.id, err);
+  }
+
   redirect(`/enquiry/${enquiry.id}`);
 }
 
